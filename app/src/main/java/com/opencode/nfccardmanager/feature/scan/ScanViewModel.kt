@@ -118,7 +118,12 @@ class ScanViewModel(
                     capability = capabilityResolver.resolve(cardInfo),
                     ndefMessageCount = 1,
                     records = emptyList(),
+                    detailItems = emptyList(),
                     rawTechList = listOf("android.nfc.tech.Ndef"),
+                    isNdefTag = true,
+                    readStatus = "EMPTY_NDEF",
+                    readReason = "演示数据：当前是 NDEF 标签，但没有记录内容。",
+                    debugMessage = "demo=true; isNdefTag=true; ndefMessageCount=1; recordCount=0",
                 )
             )
         }
