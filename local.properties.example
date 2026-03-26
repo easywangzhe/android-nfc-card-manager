@@ -1,0 +1,4 @@
+## 复制为 local.properties 后使用
+## 将下面路径替换为你本机真实 Android SDK 路径
+
+sdk.dir=/Users/yourname/Library/Android/sdk
