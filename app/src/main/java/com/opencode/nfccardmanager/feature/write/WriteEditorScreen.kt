@@ -8,16 +8,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -33,9 +28,23 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.opencode.nfccardmanager.core.common.findActivity
 import com.opencode.nfccardmanager.core.nfc.NdefWriter
 import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
+import com.opencode.nfccardmanager.core.nfc.TagParser
 import com.opencode.nfccardmanager.core.nfc.model.WriteCardRequest
 import com.opencode.nfccardmanager.core.nfc.model.WriteCardResult
+import com.opencode.nfccardmanager.core.nfc.model.toWriteStatusLabel
+import com.opencode.nfccardmanager.ui.component.AppCard
+import com.opencode.nfccardmanager.ui.component.AppTopBar
+import com.opencode.nfccardmanager.ui.component.KeyValueRow
+import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
+import com.opencode.nfccardmanager.ui.component.SecondaryActionButton
+import com.opencode.nfccardmanager.ui.component.SectionTitle
+import com.opencode.nfccardmanager.ui.component.StatusPill
+import com.opencode.nfccardmanager.ui.component.StatusTone
+import com.opencode.nfccardmanager.ui.component.appPagePadding
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +57,7 @@ fun WriteEditorScreen(
     val activity = remember(context) { context.findActivity() }
     val nfcSessionManager = remember(activity) { activity?.let { NfcSessionManager(it) } }
     val writer = remember { NdefWriter() }
+    val tagParser = remember { TagParser() }
     val scope = rememberCoroutineScope()
 
     DisposableEffect(nfcSessionManager, uiState.stage, uiState.content) {
@@ -57,7 +67,46 @@ fun WriteEditorScreen(
         } else {
             val callback = sessionManager.createReaderCallback { tag ->
                 scope.launch {
-                    val result = writer.writeText(tag, WriteCardRequest(uiState.content))
+                    val uid = tag.id?.joinToString(separator = "") { byte -> "%02X".format(byte) } ?: "UNKNOWN"
+                    val techList = tag.techList.toList()
+                    val techType = when {
+                        techList.any { it.endsWith("Ndef") } -> "NDEF"
+                        techList.any { it.endsWith("MifareUltralight") } -> "ULTRALIGHT"
+                        techList.any { it.endsWith("MifareClassic") } -> "MIFARE_CLASSIC"
+                        techList.any { it.endsWith("IsoDep") } -> "ISO_DEP"
+                        techList.any { it.endsWith("NfcA") } -> "NFC_A"
+                        else -> "UNKNOWN"
+                    }
+                    val readResult = runCatching { tagParser.parse(tag) }.getOrNull()
+                    delay(300)
+                    val precheck = writer.precheck(tag, WriteCardRequest(uiState.content))
+                    viewModel.onRawTagDetected(
+                        uid = uid,
+                        techType = techType,
+                        techList = techList,
+                        supportsWrite = precheck.supportNdefWrite,
+                        canProceed = precheck.canProceed,
+                        precheckReason = precheck.reason,
+                        requiredBytes = precheck.requiredBytes,
+                        capacityBytes = precheck.capacityBytes,
+                        isWritable = precheck.isWritable,
+                    )
+                    readResult?.let {
+                        viewModel.onTagDetected(
+                            readResult = it,
+                            supportsWrite = precheck.supportNdefWrite,
+                            canProceed = precheck.canProceed,
+                            precheckReason = precheck.reason,
+                            requiredBytes = precheck.requiredBytes,
+                        )
+                    }
+                    if (!precheck.canProceed) {
+                        viewModel.onError(precheck.reason)
+                        return@launch
+                    }
+                    val result = withContext(Dispatchers.IO) {
+                        writer.writeText(tag, WriteCardRequest(uiState.content))
+                    }
                     viewModel.onWriteResult(result)
                 }
             }
@@ -81,56 +130,154 @@ fun WriteEditorScreen(
         viewModel.resetResult()
     }
 
+    LaunchedEffect(uiState.stage) {
+        if (uiState.stage == WriteStage.WRITING) {
+            delay(15000)
+            if (viewModel.uiState.value.stage == WriteStage.WRITING) {
+                viewModel.onError("15 秒内未检测到可写标签，请确认 NFC 已开启且标签支持 NDEF 写入")
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("NDEF 写卡") },
-                navigationIcon = {
-                    TextButton(onClick = onBack) {
-                        Text("返回")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(),
-            )
+            AppTopBar(title = "NDEF 写卡", onBack = onBack)
         },
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(20.dp),
+            modifier = Modifier.appPagePadding(paddingValues),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                Text(text = uiState.message, style = MaterialTheme.typography.titleMedium)
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "NDEF 写卡", style = MaterialTheme.typography.headlineSmall)
+                    Text(text = uiState.message, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp))
+                    Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StatusPill(
+                            text = when (uiState.stage) {
+                                WriteStage.SUCCESS -> "写卡成功"
+                                WriteStage.ERROR -> "写卡异常"
+                                WriteStage.WRITING -> "写卡中"
+                                WriteStage.READY -> "待写入"
+                                else -> "待填写"
+                            },
+                            tone = when (uiState.stage) {
+                                WriteStage.SUCCESS -> StatusTone.SUCCESS
+                                WriteStage.ERROR -> StatusTone.ERROR
+                                WriteStage.WRITING -> StatusTone.INFO
+                                else -> StatusTone.WARNING
+                            }
+                        )
+                        KeyValueRow(
+                            "当前步骤",
+                            when (uiState.stage) {
+                                WriteStage.IDLE -> "1 选择模板"
+                                WriteStage.READY -> "2 准备写入"
+                                WriteStage.WRITING -> "3 贴卡写入"
+                                WriteStage.SUCCESS -> "4 校验完成"
+                                WriteStage.ERROR -> "4 异常处理"
+                            }
+                        )
+                    }
+                }
+            }
+
+            if (uiState.stage == WriteStage.WRITING) {
+                item {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        SectionTitle("等待贴卡")
+                        Text(
+                            text = "请将支持 NDEF 的标签稳定贴近手机背部 NFC 区域，检测到卡片后会自动写入。",
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                }
             }
 
             item {
-                Text(text = "模板选择", style = MaterialTheme.typography.titleLarge)
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("标签识别反馈")
+                    Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        KeyValueRow("UID", uiState.detectedUid ?: "尚未识别到标签")
+                        KeyValueRow("卡类型", uiState.detectedTechType ?: "未知")
+                        KeyValueRow(
+                            "支持 NDEF 写入",
+                            uiState.detectedWritable?.let { if (it) "是" else "否" } ?: "待检测"
+                        )
+                        KeyValueRow("NDEF 类型", uiState.detectedNdefType ?: "待检测")
+                        KeyValueRow(
+                            "NDEF 容量",
+                            uiState.detectedCapacity?.let { "$it bytes" } ?: "待检测"
+                        )
+                        KeyValueRow(
+                            "当前写入需容量",
+                            uiState.detectedRequiredBytes?.let { "$it bytes" } ?: "待检测"
+                        )
+                        KeyValueRow(
+                            "可设只读",
+                            uiState.detectedReadOnlyCapable?.let { if (it) "是" else "否" } ?: "待检测"
+                        )
+                        KeyValueRow(
+                            "允许继续写入",
+                            uiState.detectedCanProceed?.let { if (it) "是" else "否" } ?: "待检测"
+                        )
+
+                        Text(
+                            text = if (uiState.detectedMessage.isNotBlank()) uiState.detectedMessage else "等待贴卡后显示标签诊断结果。",
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+
+                        if (uiState.detectedTechList.isNotEmpty()) {
+                            SectionTitle("原始技术栈")
+                            uiState.detectedTechList.forEach { tech ->
+                                Text(tech, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (uiState.lastErrorDetail.isNotBlank()) {
+                item {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        SectionTitle("最近错误")
+                        Text(
+                            text = uiState.lastErrorDetail,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                }
+            }
+
+            item {
+                SectionTitle("模板选择")
             }
 
             items(uiState.templates) { template ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(text = "${template.name}（${template.version}）")
+                        StatusPill(
+                            text = if (uiState.selectedTemplateId == template.id) "当前使用中" else "可选模板",
+                            tone = if (uiState.selectedTemplateId == template.id) StatusTone.SUCCESS else StatusTone.INFO,
+                        )
                         Text(text = template.description)
                         Text(text = "预设内容：${template.content}")
-                        Button(
+                        PrimaryActionButton(
+                            text = if (uiState.selectedTemplateId == template.id) "已应用该模板" else "应用模板",
                             onClick = { viewModel.applyTemplate(template.id) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 12.dp),
-                        ) {
-                            Text(
-                                if (uiState.selectedTemplateId == template.id) {
-                                    "已应用该模板"
-                                } else {
-                                    "应用模板"
-                                }
-                            )
-                        }
+                        )
                     }
                 }
+            }
+
+            item {
+                SectionTitle("写入内容")
             }
 
             item {
@@ -146,17 +293,32 @@ fun WriteEditorScreen(
             }
 
             item {
-                Button(
-                    onClick = { viewModel.startWriting() },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = uiState.content.isNotBlank(),
-                ) {
-                    Text("开始写卡")
+                SectionTitle("下一步操作")
+            }
+
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    PrimaryActionButton(
+                        text = if (uiState.stage == WriteStage.WRITING) "等待贴卡中..." else "开始写卡",
+                        onClick = { viewModel.startWriting() },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = uiState.content.isNotBlank() && uiState.stage != WriteStage.WRITING,
+                    )
+
+                    if (uiState.stage == WriteStage.ERROR || uiState.detectedUid != null || uiState.lastErrorDetail.isNotBlank()) {
+                        SecondaryActionButton(
+                            text = "重新扫描 / 重试写卡",
+                            onClick = { viewModel.retryWriting() },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = uiState.content.isNotBlank() && uiState.stage != WriteStage.WRITING,
+                        )
+                    }
                 }
             }
 
             item {
-                Button(
+                SecondaryActionButton(
+                    text = "模拟写卡成功",
                     onClick = {
                         viewModel.onWriteResult(
                             WriteCardResult(
@@ -168,27 +330,32 @@ fun WriteEditorScreen(
                                 success = true,
                                 message = "演示写卡成功",
                                 payloadPreview = uiState.content.ifBlank { "演示内容" },
+                                writeStatus = "WRITE_SUCCESS",
+                                writeReason = "演示模式：标签支持 NDEF 写入。",
                                 verified = true,
                                 verificationMessage = "演示回读校验通过",
                             )
                         )
                     },
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("模拟写卡成功")
-                }
+                )
             }
 
             item {
                 uiState.result?.let { result ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = if (result.success) "写卡成功" else "写卡失败")
-                            Text(text = "UID：${result.cardInfo.uid}")
-                            Text(text = "卡类型：${result.cardInfo.techType.name}")
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                        SectionTitle(if (result.success) "写卡结果" else "写卡异常")
+                        Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            StatusPill(
+                                text = result.writeStatus.toWriteStatusLabel(),
+                                tone = if (result.success) StatusTone.SUCCESS else StatusTone.ERROR,
+                            )
+                            KeyValueRow("UID", result.cardInfo.uid)
+                            KeyValueRow("卡类型", result.cardInfo.techType.name)
                             Text(text = "结果：${result.message}")
+                            Text(text = "失败/说明：${result.writeReason}")
                             Text(text = "写入内容：${result.payloadPreview}")
-                            Text(text = "回读校验：${if (result.verified) "通过" else "失败"}")
+                            KeyValueRow("回读校验", if (result.verified) "通过" else "失败")
                             Text(text = "校验说明：${result.verificationMessage}")
                         }
                     }

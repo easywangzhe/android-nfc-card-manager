@@ -3,6 +3,7 @@ package com.opencode.nfccardmanager.feature.home
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,20 +12,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.opencode.nfccardmanager.core.security.UserSession
 import com.opencode.nfccardmanager.core.security.UserRole
+import com.opencode.nfccardmanager.ui.component.AppCard
+import com.opencode.nfccardmanager.ui.component.AppTopBar
+import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
+import com.opencode.nfccardmanager.ui.component.SectionTitle
+import com.opencode.nfccardmanager.ui.component.StatusPill
+import com.opencode.nfccardmanager.ui.component.StatusTone
+import com.opencode.nfccardmanager.ui.component.appPagePadding
 
 private data class HomeAction(
     val title: String,
@@ -44,59 +48,45 @@ fun HomeScreen(
     onWriteClick: () -> Unit,
     onLockClick: () -> Unit,
     onUnlockClick: () -> Unit,
-    onTemplateClick: () -> Unit,
-    onAuditClick: () -> Unit,
-    onSettingsClick: () -> Unit,
     canRead: Boolean,
     canWrite: Boolean,
     canLock: Boolean,
     canUnlock: Boolean,
-    canManageTemplate: Boolean,
-    canViewAudit: Boolean,
 ) {
     val actions = listOf(
         HomeAction("读卡", onReadClick, canRead),
         HomeAction("写卡", onWriteClick, canWrite),
         HomeAction("锁卡", onLockClick, canLock),
         HomeAction("解锁", onUnlockClick, canUnlock),
-        HomeAction("模板管理", onTemplateClick, canManageTemplate),
-        HomeAction("日志审计", onAuditClick, canViewAudit),
-        HomeAction("我的/设置", onSettingsClick, true),
     )
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("NFC 卡片管理") },
-                actions = {
-                    TextButton(onClick = onLogout) {
-                        Text("退出")
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(),
-            )
+            AppTopBar(title = "NFC 卡片管理", actionText = "退出", onActionClick = onLogout)
         },
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp, vertical = 20.dp),
+            modifier = Modifier.appPagePadding(paddingValues),
         ) {
-            Text(
-                text = "Android NFC 企业工具骨架工程",
-                style = MaterialTheme.typography.headlineSmall,
-            )
-            Text(
-                text = "当前用户：${currentSession.displayName}（${currentSession.username}）",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
-            )
-            Text(
-                text = "当前角色：${roleLabel(currentRole)}",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 20.dp),
-            )
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Text(text = "NFC 卡片管理", style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    text = "当前用户：${currentSession.displayName}（${currentSession.username}）",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                Text(
+                    text = "当前角色：${roleLabel(currentRole)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatusPill("NFC 工具", StatusTone.INFO)
+                    StatusPill("会话已登录", StatusTone.SUCCESS)
+                }
+            }
+
+            SectionTitle("角色切换")
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(UserRole.entries.toList()) { role ->
                     FilterChip(
@@ -106,6 +96,8 @@ fun HomeScreen(
                     )
                 }
             }
+
+            SectionTitle("快捷操作")
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(4.dp),
@@ -114,14 +106,22 @@ fun HomeScreen(
                 modifier = Modifier.padding(top = 20.dp),
             ) {
                 gridItems(actions) { action ->
-                    Button(
+                    PrimaryActionButton(
+                        text = action.title,
                         onClick = action.onClick,
                         modifier = Modifier.fillMaxWidth(),
                         enabled = action.enabled,
-                    ) {
-                        Text(action.title)
-                    }
+                    )
                 }
+            }
+
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                SectionTitle("操作提示")
+                Text(
+                    text = "建议先读卡识别卡片能力，再执行写卡、锁卡或解锁等后续操作。",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
             }
         }
     }

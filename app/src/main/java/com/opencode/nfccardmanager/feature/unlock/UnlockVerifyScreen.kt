@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -17,6 +15,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -31,9 +30,18 @@ import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
 import com.opencode.nfccardmanager.core.nfc.TagParser
 import com.opencode.nfccardmanager.core.nfc.UnlockExecutor
 import com.opencode.nfccardmanager.core.nfc.model.CardInfo
+import com.opencode.nfccardmanager.core.nfc.model.LockMode
 import com.opencode.nfccardmanager.core.nfc.model.TechType
 import com.opencode.nfccardmanager.core.nfc.model.UnlockCardRequest
 import com.opencode.nfccardmanager.core.nfc.model.UnlockCardResult
+import com.opencode.nfccardmanager.ui.component.AppCard
+import com.opencode.nfccardmanager.ui.component.KeyValueRow
+import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
+import com.opencode.nfccardmanager.ui.component.SecondaryActionButton
+import com.opencode.nfccardmanager.ui.component.SectionTitle
+import com.opencode.nfccardmanager.ui.component.StatusPill
+import com.opencode.nfccardmanager.ui.component.StatusTone
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,6 +98,15 @@ fun UnlockVerifyScreen(
         }
     }
 
+    LaunchedEffect(uiState.stage) {
+        if (uiState.stage == UnlockStage.SCANNING) {
+            delay(15000)
+            if (viewModel.uiState.value.stage == UnlockStage.SCANNING) {
+                viewModel.onError("15 秒内未检测到可识别卡片，请确认 NFC 已开启并将卡片贴近手机背部")
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -110,16 +127,32 @@ fun UnlockVerifyScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(text = "解锁能力边界", style = MaterialTheme.typography.titleLarge)
-                    Text(text = "1. NDEF 永久只读锁定通常不可逆")
-                    Text(text = "2. 当前仅实现密码保护型卡片的解锁流程骨架")
-                    Text(text = "3. 真实底层解除写保护命令尚未接入")
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                SectionTitle("解锁能力边界")
+                Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatusPill("受控恢复操作", StatusTone.WARNING)
+                    Text(text = "1. 本页面仅对密码保护型锁定有实际意义")
+                    Text(text = "2. NDEF 永久只读锁定通常不可逆，不能通用解锁")
+                    Text(text = "3. 当前已完成密码保护型解锁流程骨架，真实底层认证命令仍待接入")
                 }
             }
 
             Text(text = uiState.message, style = MaterialTheme.typography.titleMedium)
+
+            uiState.capability?.let { capability ->
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("卡片能力识别")
+                    Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        KeyValueRow("锁定类型", when (capability.lockMode) {
+                            LockMode.PASSWORD_PROTECTED -> "密码保护"
+                            LockMode.READ_ONLY_PERMANENT -> "永久只读"
+                            LockMode.NONE -> "不支持锁定"
+                        })
+                        KeyValueRow("支持解锁", if (capability.canUnlock) "是" else "否")
+                        KeyValueRow("写入需认证", if (capability.requiresAuthForWrite) "是" else "否")
+                    }
+                }
+            }
 
             OutlinedTextField(
                 value = uiState.reason,
@@ -140,15 +173,15 @@ fun UnlockVerifyScreen(
                 singleLine = true,
             )
 
-            Button(
+            PrimaryActionButton(
+                text = "开始解锁（仅密码保护型）",
                 onClick = viewModel::startUnlock,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = uiState.stage == UnlockStage.READY || uiState.stage == UnlockStage.SCANNING,
-            ) {
-                Text("开始解锁")
-            }
+            )
 
-            Button(
+            SecondaryActionButton(
+                text = "模拟解锁成功",
                 onClick = {
                     viewModel.onUnlockResult(
                         UnlockCardResult(
@@ -164,16 +197,15 @@ fun UnlockVerifyScreen(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("模拟解锁成功")
-            }
+            )
 
             uiState.result?.let { result ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle(if (result.success) "解锁结果" else "解锁失败")
+                    Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(text = if (result.success) "解锁成功" else "解锁失败")
-                        Text(text = "UID：${result.cardInfo.uid}")
-                        Text(text = "卡类型：${result.cardInfo.techType.name}")
+                        KeyValueRow("UID", result.cardInfo.uid)
+                        KeyValueRow("卡类型", result.cardInfo.techType.name)
                         Text(text = "结果：${result.message}")
                         Text(text = "校验说明：${result.verificationMessage}")
                     }

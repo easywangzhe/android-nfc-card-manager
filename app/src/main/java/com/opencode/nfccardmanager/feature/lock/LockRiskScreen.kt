@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,9 +29,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.opencode.nfccardmanager.core.common.findActivity
 import com.opencode.nfccardmanager.core.nfc.NdefLocker
 import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
+import com.opencode.nfccardmanager.core.nfc.PasswordProtectedLocker
+import com.opencode.nfccardmanager.core.nfc.TagParser
 import com.opencode.nfccardmanager.core.nfc.model.CardInfo
 import com.opencode.nfccardmanager.core.nfc.model.LockCardResult
+import com.opencode.nfccardmanager.core.nfc.model.LockMode
 import com.opencode.nfccardmanager.core.nfc.model.TechType
+import com.opencode.nfccardmanager.ui.component.AppCard
+import com.opencode.nfccardmanager.ui.component.DangerActionButton
+import com.opencode.nfccardmanager.ui.component.KeyValueRow
+import com.opencode.nfccardmanager.ui.component.SecondaryActionButton
+import com.opencode.nfccardmanager.ui.component.SectionTitle
+import com.opencode.nfccardmanager.ui.component.StatusPill
+import com.opencode.nfccardmanager.ui.component.StatusTone
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,6 +55,8 @@ fun LockRiskScreen(
     val activity = remember(context) { context.findActivity() }
     val sessionManager = remember(activity) { activity?.let { NfcSessionManager(it) } }
     val locker = remember { NdefLocker() }
+    val passwordLocker = remember { PasswordProtectedLocker() }
+    val tagParser = remember { TagParser() }
     val scope = rememberCoroutineScope()
 
     DisposableEffect(sessionManager, uiState.stage) {
@@ -56,7 +66,26 @@ fun LockRiskScreen(
         } else {
             val callback = nfcManager.createReaderCallback { tag ->
                 scope.launch {
-                    viewModel.onLockResult(locker.makeReadOnly(tag))
+                    val readResult = runCatching { tagParser.parse(tag) }.getOrNull()
+                    if (readResult == null) {
+                        viewModel.onError("锁卡前无法识别卡片能力，请重试")
+                        return@launch
+                    }
+                    viewModel.onTagResolved(readResult)
+                    val result = when (readResult.capability.lockMode) {
+                        LockMode.PASSWORD_PROTECTED -> passwordLocker.lock(readResult)
+                        LockMode.READ_ONLY_PERMANENT -> locker.makeReadOnly(tag)
+                        else -> LockCardResult(
+                            cardInfo = readResult.cardInfo,
+                            success = false,
+                            message = "当前卡片不支持锁卡",
+                            lockMode = LockMode.NONE,
+                            irreversible = false,
+                            verified = false,
+                            verificationMessage = "既不支持密码保护，也不支持永久只读锁定。",
+                        )
+                    }
+                    viewModel.onLockResult(result)
                 }
             }
 
@@ -95,20 +124,35 @@ fun LockRiskScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "高风险提示", style = MaterialTheme.typography.titleLarge)
-                    Text(text = "1. 当前仅接入 NDEF 永久只读锁卡")
-                    Text(text = "2. 锁卡后通常不可解锁")
-                    Text(text = "3. 锁卡前请确认标签数据已正确")
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                SectionTitle("高风险提示")
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    StatusPill("高风险操作", StatusTone.ERROR)
+                    Text(text = "1. 系统会先识别卡片能力，优先采用密码保护方案")
+                    Text(text = "2. 若卡片不支持密码保护，则降级为永久只读")
+                    Text(text = "3. 永久只读通常不可解锁，请确认风险")
                 }
             }
 
-            Text(text = uiState.message, style = MaterialTheme.typography.titleMedium)
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                SectionTitle("锁卡策略")
+                Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    KeyValueRow(
+                        "推荐方式",
+                        when (uiState.recommendedMode) {
+                            LockMode.PASSWORD_PROTECTED -> "密码保护"
+                            LockMode.READ_ONLY_PERMANENT -> "永久只读"
+                            else -> "待识别"
+                        }
+                    )
+                    Text(text = uiState.message, style = MaterialTheme.typography.bodyLarge)
+                    Text(text = uiState.modeHint, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
 
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "风险确认")
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                SectionTitle("风险确认")
+                Column(modifier = Modifier.padding(top = 8.dp)) {
                     Checkbox(
                         checked = uiState.riskAcknowledged,
                         onCheckedChange = viewModel::toggleRiskAcknowledged,
@@ -126,45 +170,46 @@ fun LockRiskScreen(
                 singleLine = true,
             )
 
-            Button(
+            DangerActionButton(
+                text = "确认锁卡（高风险）",
                 onClick = { viewModel.startLocking() },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = uiState.stage == LockStage.READY || uiState.stage == LockStage.LOCKING,
-            ) {
-                Text("开始锁卡")
-            }
+            )
 
-            Button(
+            SecondaryActionButton(
+                text = "模拟锁卡成功",
                 onClick = {
                     viewModel.onLockResult(
                         LockCardResult(
                             cardInfo = CardInfo(
                                 uid = "04A1B2C3D4",
-                                techType = TechType.NDEF,
+                                techType = TechType.ULTRALIGHT,
                                 summary = "演示锁卡目标",
                             ),
                             success = true,
-                            message = "演示锁卡成功，标签已进入永久只读",
-                            irreversible = true,
+                            message = "演示锁卡成功，已优先采用密码保护方案",
+                            lockMode = LockMode.PASSWORD_PROTECTED,
+                            irreversible = false,
                             verified = true,
-                            verificationMessage = "演示校验通过：标签不可写",
+                            verificationMessage = "演示校验通过：后续可通过凭据解锁",
                         )
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("模拟锁卡成功")
-            }
+            )
 
             uiState.result?.let { result ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle(if (result.success) "锁卡结果" else "锁卡失败")
+                    Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(text = if (result.success) "锁卡成功" else "锁卡失败")
-                        Text(text = "UID：${result.cardInfo.uid}")
-                        Text(text = "卡类型：${result.cardInfo.techType.name}")
+                        KeyValueRow("UID", result.cardInfo.uid)
+                        KeyValueRow("卡类型", result.cardInfo.techType.name)
+                        KeyValueRow("锁定方式", when (result.lockMode) { LockMode.PASSWORD_PROTECTED -> "密码保护"; LockMode.READ_ONLY_PERMANENT -> "永久只读"; else -> "不支持" })
                         Text(text = "结果：${result.message}")
-                        Text(text = "不可逆：${if (result.irreversible) "是" else "否"}")
-                        Text(text = "只读校验：${if (result.verified) "通过" else "失败"}")
+                        KeyValueRow("不可逆", if (result.irreversible) "是" else "否")
+                        KeyValueRow("只读校验", if (result.verified) "通过" else "失败")
                         Text(text = "校验说明：${result.verificationMessage}")
                     }
                 }

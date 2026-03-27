@@ -119,9 +119,16 @@ class TagParser {
                     errorMessage = "NDEF 连接成功，但标签未返回任何 NDEF 消息。",
                 )
             } else {
+                val parsedRecords = message.records
+                    .filterNot { record ->
+                        record.tnf == NdefRecord.TNF_EMPTY.toShort() &&
+                            record.type.isEmpty() &&
+                            record.payload.isEmpty()
+                    }
+                    .map { record -> record.toRecordContent() }
                 NdefReadResult(
-                    messageCount = 1,
-                    records = message.records.map { record -> record.toRecordContent() },
+                    messageCount = if (parsedRecords.isEmpty()) 0 else 1,
+                    records = parsedRecords,
                 )
             }
         }.getOrElse {

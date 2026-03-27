@@ -1,9 +1,20 @@
 package com.opencode.nfccardmanager.navigation
 
 import android.net.Uri
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -22,6 +33,7 @@ import com.opencode.nfccardmanager.feature.auth.LoginScreen
 import com.opencode.nfccardmanager.feature.audit.AuditLogDetailScreen
 import com.opencode.nfccardmanager.feature.audit.AuditLogScreen
 import com.opencode.nfccardmanager.feature.common.PermissionDeniedScreen
+import com.opencode.nfccardmanager.feature.format.FormatCardScreen
 import com.opencode.nfccardmanager.feature.home.HomeScreen
 import com.opencode.nfccardmanager.feature.lock.LockRiskScreen
 import com.opencode.nfccardmanager.feature.read.ReadResultScreen
@@ -38,6 +50,7 @@ object Routes {
     const val SCAN = "scan/{mode}"
     const val READ_RESULT = "read_result/{uid}/{techType}?summary={summary}"
     const val WRITE_EDITOR = "write_editor"
+    const val FORMAT_CARD = "format_card"
     const val LOCK_RISK = "lock_risk"
     const val UNLOCK_VERIFY = "unlock_verify"
     const val TEMPLATE = "template"
@@ -57,6 +70,8 @@ object Routes {
 private data class BottomNavItem(
     val route: String,
     val label: String,
+    val selectedIcon: ImageVector,
+    val unselectedIcon: ImageVector,
 )
 
 @Composable
@@ -67,10 +82,10 @@ fun AppNavGraph() {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val bottomNavItems = listOf(
-        BottomNavItem(Routes.HOME, "首页"),
-        BottomNavItem(Routes.TEMPLATE, "模板"),
-        BottomNavItem(Routes.AUDIT, "日志"),
-        BottomNavItem(Routes.SETTINGS, "我的"),
+        BottomNavItem(Routes.HOME, "首页", Icons.Filled.Home, Icons.Outlined.Home),
+        BottomNavItem(Routes.TEMPLATE, "模板", Icons.Filled.Widgets, Icons.Outlined.Widgets),
+        BottomNavItem(Routes.AUDIT, "日志", Icons.AutoMirrored.Filled.ReceiptLong, Icons.AutoMirrored.Outlined.ReceiptLong),
+        BottomNavItem(Routes.SETTINGS, "我的", Icons.Filled.Person, Icons.Outlined.Person),
     )
     val showBottomBar = currentSession != null && currentRoute in bottomNavItems.map { it.route }
 
@@ -96,7 +111,12 @@ fun AppNavGraph() {
                                     restoreState = true
                                 }
                             },
-                            icon = { Text(item.label.take(1)) },
+                            icon = {
+                                Icon(
+                                    imageVector = if (currentRoute == item.route) item.selectedIcon else item.unselectedIcon,
+                                    contentDescription = item.label,
+                                )
+                            },
                             label = { Text(item.label) },
                         )
                     }
@@ -142,16 +162,11 @@ fun AppNavGraph() {
                     onReadClick = { navController.navigate(Routes.scan(ScanMode.READ)) },
                     onWriteClick = { navController.navigate(Routes.WRITE_EDITOR) },
                     onLockClick = { navController.navigate(Routes.LOCK_RISK) },
-                    onUnlockClick = { navController.navigate(Routes.scan(ScanMode.UNLOCK)) },
-                    onTemplateClick = { navController.navigate(Routes.TEMPLATE) },
-                    onAuditClick = { navController.navigate(Routes.AUDIT) },
-                    onSettingsClick = { navController.navigate(Routes.SETTINGS) },
+                    onUnlockClick = { navController.navigate(Routes.UNLOCK_VERIFY) },
                     canRead = SecurityManager.canRead(currentRole),
                     canWrite = SecurityManager.canWrite(currentRole),
                     canLock = SecurityManager.canLock(currentRole),
                     canUnlock = SecurityManager.canUnlock(currentRole),
-                    canManageTemplate = SecurityManager.canManageTemplate(currentRole),
-                    canViewAudit = SecurityManager.canViewAudit(currentRole),
                 )
             }
             composable(
@@ -203,7 +218,22 @@ fun AppNavGraph() {
                     techType = backStackEntry.arguments?.getString("techType").orEmpty(),
                     summary = backStackEntry.arguments?.getString("summary").orEmpty(),
                     onBack = { navController.popBackStack() },
+                    onFormatCard = { navController.navigate(Routes.FORMAT_CARD) },
                 )
+            }
+
+            composable(Routes.FORMAT_CARD) {
+                if (!SecurityManager.canWrite(currentRole)) {
+                    PermissionDeniedScreen(
+                        description = "当前角色 ${SecurityManager.roleLabel(currentRole)} 无权格式化卡片。",
+                        onBack = { navController.popBackStack() },
+                    )
+                } else {
+                    FormatCardScreen(
+                        onBack = { navController.popBackStack() },
+                        onGoWrite = { navController.navigate(Routes.WRITE_EDITOR) },
+                    )
+                }
             }
 
             composable(Routes.WRITE_EDITOR) {

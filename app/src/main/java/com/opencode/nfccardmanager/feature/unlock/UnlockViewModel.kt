@@ -53,7 +53,17 @@ class UnlockViewModel : ViewModel() {
             it.copy(
                 cardInfo = readResult.cardInfo,
                 capability = readResult.capability,
-                message = "已识别 ${readResult.cardInfo.techType.name}，正在执行解锁流程判断",
+                message = when {
+                    readResult.capability.lockMode == com.opencode.nfccardmanager.core.nfc.model.LockMode.PASSWORD_PROTECTED -> {
+                        "已识别 ${readResult.cardInfo.techType.name}，该卡支持密码保护型解锁流程。"
+                    }
+                    readResult.capability.lockMode == com.opencode.nfccardmanager.core.nfc.model.LockMode.READ_ONLY_PERMANENT -> {
+                        "已识别 ${readResult.cardInfo.techType.name}，该卡更可能属于永久只读锁定，通常不可解锁。"
+                    }
+                    else -> {
+                        "已识别 ${readResult.cardInfo.techType.name}，当前卡片不支持解锁。"
+                    }
+                },
             )
         }
     }

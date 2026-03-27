@@ -3,14 +3,11 @@ package com.opencode.nfccardmanager.feature.audit
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -18,7 +15,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,6 +22,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.opencode.nfccardmanager.ui.component.AppCard
+import com.opencode.nfccardmanager.ui.component.AppTopBar
+import com.opencode.nfccardmanager.ui.component.KeyValueRow
+import com.opencode.nfccardmanager.ui.component.SectionTitle
+import com.opencode.nfccardmanager.ui.component.StatusPill
+import com.opencode.nfccardmanager.ui.component.StatusTone
+import com.opencode.nfccardmanager.ui.component.appPagePadding
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -45,31 +48,26 @@ fun AuditLogScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("日志审计") },
-                navigationIcon = {
-                    if (onBack != null) {
-                        TextButton(onClick = onBack) {
-                            Text("返回")
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(),
-            )
+            AppTopBar(title = "日志审计", onBack = onBack)
         },
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(20.dp),
+            modifier = Modifier.appPagePadding(paddingValues),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                Text(
-                    text = if (uiState.isLoading) "日志加载中..." else "共 ${uiState.filteredLogs.size} / ${uiState.logs.size} 条本地审计日志",
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("日志总览")
+                    Text(
+                        text = if (uiState.isLoading) "日志加载中..." else "共 ${uiState.filteredLogs.size} / ${uiState.logs.size} 条本地审计日志",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                }
+            }
+
+            item {
+                SectionTitle("筛选")
             }
 
             item {
@@ -132,25 +130,26 @@ fun AuditLogScreen(
 
             if (uiState.filteredLogs.isEmpty() && !uiState.isLoading) {
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                             Text(text = "暂无匹配日志")
                             Text(text = "可尝试修改筛选条件，或先执行读卡、写卡、锁卡操作。")
-                        }
                     }
                 }
             } else {
                 items(uiState.filteredLogs) { log ->
-                    Card(
+                    AppCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onLogClick(log.id) }
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = "操作：${log.operationType}")
-                            Text(text = "结果：${log.result}")
-                            Text(text = "卡片：${log.cardUidMasked} / ${log.cardType}")
-                            Text(text = "操作者：${log.operatorId}")
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            StatusPill(
+                                text = log.result,
+                                tone = if (log.result == "SUCCESS") StatusTone.SUCCESS else StatusTone.ERROR,
+                            )
+                            KeyValueRow("操作", log.operationType)
+                            KeyValueRow("卡片", "${log.cardUidMasked} / ${log.cardType}")
+                            KeyValueRow("操作者", log.operatorId)
                             Text(text = "说明：${log.message}")
                             Text(text = "时间：${log.createdAt.toDisplayTime()}")
                         }

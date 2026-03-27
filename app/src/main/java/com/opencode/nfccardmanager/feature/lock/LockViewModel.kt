@@ -3,6 +3,8 @@ package com.opencode.nfccardmanager.feature.lock
 import androidx.lifecycle.ViewModel
 import com.opencode.nfccardmanager.core.database.AuditLogManager
 import com.opencode.nfccardmanager.core.nfc.model.LockCardResult
+import com.opencode.nfccardmanager.core.nfc.model.LockMode
+import com.opencode.nfccardmanager.core.nfc.model.ReadCardResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +34,25 @@ class LockViewModel : ViewModel() {
                 stage = LockStage.LOCKING,
                 message = "请将支持 NDEF 的标签贴近手机背部，执行永久只读锁定",
                 result = null,
+            )
+        }
+    }
+
+    fun onTagResolved(readResult: ReadCardResult) {
+        val recommended = readResult.capability.lockMode
+        _uiState.update {
+            it.copy(
+                recommendedMode = recommended,
+                modeHint = when (recommended) {
+                    LockMode.PASSWORD_PROTECTED -> "检测到该卡支持密码保护，系统将优先采用可授权解锁的锁定方案。"
+                    LockMode.READ_ONLY_PERMANENT -> "该卡不支持密码保护，将降级为永久只读锁定，请确认不可逆风险。"
+                    else -> "当前卡片不支持锁卡。"
+                },
+                message = when (recommended) {
+                    LockMode.PASSWORD_PROTECTED -> "已识别支持密码保护的卡片，继续后将优先执行密码保护型锁卡。"
+                    LockMode.READ_ONLY_PERMANENT -> "已识别仅支持永久只读的卡片，继续后将执行不可逆锁卡。"
+                    else -> "当前卡片不支持锁卡。"
+                },
             )
         }
     }
@@ -79,7 +100,7 @@ class LockViewModel : ViewModel() {
                 message = when {
                     canStartLock() -> "确认条件已满足，点击开始锁卡后贴卡执行"
                     state.confirmText.isNotBlank() && state.confirmText != "LOCK" -> "确认词必须为 LOCK"
-                    else -> "锁卡会将标签设置为永久只读，通常不可逆。"
+                    else -> "锁卡前会先识别卡片能力，并优先使用可解锁的密码保护方案。"
                 },
             )
         }

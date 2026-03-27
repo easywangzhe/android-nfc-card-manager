@@ -2,21 +2,15 @@ package com.opencode.nfccardmanager.feature.template
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -24,6 +18,14 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.opencode.nfccardmanager.ui.component.AppCard
+import com.opencode.nfccardmanager.ui.component.AppTopBar
+import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
+import com.opencode.nfccardmanager.ui.component.SecondaryActionButton
+import com.opencode.nfccardmanager.ui.component.SectionTitle
+import com.opencode.nfccardmanager.ui.component.StatusPill
+import com.opencode.nfccardmanager.ui.component.StatusTone
+import com.opencode.nfccardmanager.ui.component.appPagePadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,28 +37,26 @@ fun TemplateManagementScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("模板管理") },
-                navigationIcon = {
-                    if (onBack != null) {
-                        TextButton(onClick = onBack) {
-                            Text("返回")
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(),
-            )
+            AppTopBar(title = "模板管理", onBack = onBack)
         },
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(20.dp),
+            modifier = Modifier.appPagePadding(paddingValues),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                Text(text = uiState.message, modifier = Modifier.fillMaxWidth())
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("模板工作台")
+                    Text(text = uiState.message, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
+                    StatusPill(
+                        text = if (uiState.editingTemplateId == null) "新增模式" else "编辑模式",
+                        tone = if (uiState.editingTemplateId == null) StatusTone.INFO else StatusTone.WARNING,
+                    )
+                }
+            }
+
+            item {
+                SectionTitle("模板编辑")
             }
 
             item {
@@ -91,48 +91,44 @@ fun TemplateManagementScreen(
             }
 
             item {
-                Button(
+                PrimaryActionButton(
+                    text = if (uiState.editingTemplateId == null) "保存新增模板" else "保存模板修改",
                     onClick = viewModel::saveTemplate,
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(if (uiState.editingTemplateId == null) "保存新增模板" else "保存模板修改")
-                }
+                )
             }
 
             item {
-                Button(
+                SecondaryActionButton(
+                    text = "清空表单",
                     onClick = viewModel::startCreate,
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("清空表单")
-                }
+                )
             }
 
             item {
-                Text(text = "模板列表", modifier = Modifier.fillMaxWidth())
+                SectionTitle("模板列表")
             }
 
             items(uiState.templates) { template ->
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(text = "${template.name}（${template.version}）")
+                        StatusPill("已发布", StatusTone.SUCCESS)
                         Text(text = "说明：${template.description}")
                         Text(text = "内容：${template.content}")
-                        Button(
+                        PrimaryActionButton(
+                            text = "编辑",
                             onClick = { viewModel.startEdit(template) },
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("编辑")
-                        }
-                        Button(
+                        )
+                        SecondaryActionButton(
+                            text = "删除",
                             onClick = { viewModel.deleteTemplate(template.id) },
                             modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text("删除")
-                        }
+                        )
                     }
                 }
             }

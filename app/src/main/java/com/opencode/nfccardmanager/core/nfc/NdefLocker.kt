@@ -20,6 +20,7 @@ class NdefLocker {
                 cardInfo = cardInfo,
                 success = false,
                 message = "当前标签不支持 NDEF 锁定",
+                lockMode = com.opencode.nfccardmanager.core.nfc.model.LockMode.READ_ONLY_PERMANENT,
                 verified = false,
                 verificationMessage = "无法执行只读校验",
             )
@@ -36,6 +37,7 @@ class NdefLocker {
                 cardInfo = cardInfo,
                 success = verified,
                 message = if (verified) "锁卡成功，标签已进入永久只读" else "锁卡完成但只读校验失败",
+                lockMode = com.opencode.nfccardmanager.core.nfc.model.LockMode.READ_ONLY_PERMANENT,
                 irreversible = true,
                 verified = verified,
                 verificationMessage = if (verified) "已校验标签不可写" else "锁卡后标签仍可写",
@@ -45,6 +47,7 @@ class NdefLocker {
                 cardInfo = cardInfo,
                 success = false,
                 message = it.message ?: "锁卡失败",
+                lockMode = com.opencode.nfccardmanager.core.nfc.model.LockMode.READ_ONLY_PERMANENT,
                 irreversible = true,
                 verified = false,
                 verificationMessage = "未通过只读校验",
