@@ -20,15 +20,15 @@ Requirements for this brownfield optimization round. Each requirement will map t
 - [x] **FLOW-01**: User must explicitly start NFC scanning before a read, write, format, lock, or unlock session begins.
 - [x] **FLOW-02**: User can perform one NFC operation session at a time without duplicate callbacks or repeated execution.
 - [x] **FLOW-03**: User can distinguish the current phase of an operation, including waiting, scanning, processing, success, and failure.
-- [ ] **FLOW-04**: User can distinguish write success from read-back verification success after a write operation.
-- [ ] **FLOW-05**: User sees the next recommended action after an operation succeeds, fails, or remains unverified.
+- [x] **FLOW-04**: User can distinguish write success from read-back verification success after a write operation.
+- [x] **FLOW-05**: User sees the next recommended action after an operation succeeds, fails, or remains unverified.
 
 ### High-Risk Operations
 
 - [ ] **RISK-01**: User sees a risk summary and required confirmations before lock, unlock, or format can start.
 - [ ] **RISK-02**: User can see which lock methods are supported by the current product and which are not supported.
 - [ ] **RISK-03**: User can see whether a locked card can be unlocked in the current scenario, and whether that outcome is real support or only process demonstration.
-- [ ] **RISK-04**: User can see whether a format failure happened, the likely reason, and the safest next step.
+- [x] **RISK-04**: User can see whether a format failure happened, the likely reason, and the safest next step.
 - [ ] **RISK-05**: User cannot accidentally leave or re-trigger a high-risk operation while processing is in progress.
 - [ ] **RISK-06**: User can distinguish operation result source, including confirmed execution, failed execution, unverified result, or demo-only result.
 - [ ] **RISK-07**: User receives failure recovery guidance for high-risk operations based on the actual failure condition.
@@ -82,12 +82,12 @@ Which phases cover which requirements.
 | FLOW-01 | Phase 1 | Complete |
 | FLOW-02 | Phase 1 | Complete |
 | FLOW-03 | Phase 1 | Complete |
-| FLOW-04 | Phase 3 | Pending |
-| FLOW-05 | Phase 3 | Pending |
+| FLOW-04 | Phase 3 | Complete |
+| FLOW-05 | Phase 3 | Complete |
 | RISK-01 | Phase 4 | Pending |
 | RISK-02 | Phase 4 | Pending |
 | RISK-03 | Phase 4 | Pending |
-| RISK-04 | Phase 3 | Pending |
+| RISK-04 | Phase 3 | Complete |
 | RISK-05 | Phase 4 | Pending |
 | RISK-06 | Phase 4 | Pending |
 | RISK-07 | Phase 4 | Pending |
