@@ -94,9 +94,21 @@ object SecurityManager {
 
     fun canManageTemplate(role: UserRole): Boolean = role == UserRole.ADMIN
 
-    fun canViewAudit(role: UserRole): Boolean = true
+    fun canViewAudit(role: UserRole): Boolean = when (role) {
+        UserRole.OPERATOR,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+        UserRole.AUDITOR,
+        -> true
+    }
 
-    fun canViewAuditDetail(role: UserRole): Boolean = true
+    fun canViewAuditDetail(role: UserRole): Boolean = when (role) {
+        UserRole.OPERATOR,
+        UserRole.SUPERVISOR,
+        UserRole.ADMIN,
+        UserRole.AUDITOR,
+        -> true
+    }
 
     fun canAccess(role: UserRole, action: ProtectedAction): Boolean {
         return when (action) {

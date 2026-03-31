@@ -18,6 +18,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.opencode.nfccardmanager.core.nfc.model.NfcFlowStage
+import com.opencode.nfccardmanager.core.nfc.model.presentation
+import com.opencode.nfccardmanager.core.nfc.model.toCapabilityAuthenticity
+import com.opencode.nfccardmanager.core.security.ProtectedAction
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.AppTopBar
 import com.opencode.nfccardmanager.ui.component.KeyValueRow
@@ -27,6 +31,7 @@ import com.opencode.nfccardmanager.ui.component.SectionTitle
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
 import com.opencode.nfccardmanager.ui.component.appPagePadding
+import com.opencode.nfccardmanager.ui.component.toStatusTone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +43,11 @@ fun ReadResultScreen(
     onFormatCard: () -> Unit,
 ) {
     val latestResult by ReadResultStore.latestResult.collectAsStateWithLifecycle()
+    val stagePresentation = NfcFlowStage.SUCCESS.presentation()
+    val readAuthenticity = ProtectedAction.READ.toCapabilityAuthenticity(latestResult?.capability).presentation()
+    val writeAuthenticity = ProtectedAction.WRITE.toCapabilityAuthenticity(latestResult?.capability).presentation()
+    val lockAuthenticity = ProtectedAction.LOCK.toCapabilityAuthenticity(latestResult?.capability).presentation()
+    val unlockAuthenticity = ProtectedAction.UNLOCK.toCapabilityAuthenticity(latestResult?.capability).presentation()
 
     Scaffold(
         topBar = {
@@ -81,6 +91,22 @@ fun ReadResultScreen(
                                 else -> StatusTone.INFO
                             }
                         )
+                        StatusPill(
+                            text = readAuthenticity.label,
+                            tone = readAuthenticity.tone.toStatusTone(),
+                        )
+                    }
+                }
+            }
+
+            item {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("共享状态与真实性")
+                    Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        KeyValueRow("共享阶段", stagePresentation.title)
+                        Text(text = stagePresentation.detail)
+                        KeyValueRow("读卡真实性", readAuthenticity.label)
+                        Text(text = readAuthenticity.detail)
                     }
                 }
             }
@@ -157,6 +183,12 @@ fun ReadResultScreen(
                         KeyValueRow("可写", "${latestResult?.capability?.canWrite ?: false}")
                         KeyValueRow("可锁", "${latestResult?.capability?.canLock ?: false}")
                         KeyValueRow("可解锁", "${latestResult?.capability?.canUnlock ?: false}")
+                        StatusPill(text = "写卡：${writeAuthenticity.label}", tone = writeAuthenticity.tone.toStatusTone())
+                        Text(text = writeAuthenticity.detail)
+                        StatusPill(text = "锁卡：${lockAuthenticity.label}", tone = lockAuthenticity.tone.toStatusTone())
+                        Text(text = lockAuthenticity.detail)
+                        StatusPill(text = "解锁：${unlockAuthenticity.label}", tone = unlockAuthenticity.tone.toStatusTone())
+                        Text(text = unlockAuthenticity.detail)
                     }
                 }
             }
