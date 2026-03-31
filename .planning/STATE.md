@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-31T07:26:51.737Z"
+status: planning-complete
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-31T07:30:00.406Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 2
-  completed_plans: 4
-  percent: 20
+  completed_phases: 2
+  total_plans: 5
+  completed_plans: 5
+  percent: 40
 ---
 
 # Project State
@@ -21,40 +21,42 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** 让用户在执行 NFC 卡片关键操作时，始终能清楚理解当前状态、风险提示和下一步动作，从而更安全、更高效地完成任务。
-**Current focus:** Phase 2 - 首页与导航重构
+**Current focus:** Phase 3 - 高频流程澄清
 
 ## Current Position
 
-Phase: 2 of 5 (首页与导航重构)
-Plan: 1 of 2 in current phase
-Status: Ready to execute
+Phase: 3 of 5 (高频流程澄清)
+Plan: 0 of TBD in current phase
+Status: Planned, ready to execute
 Last activity: 2026-03-31
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 3
-- Average duration: 7.9 min
-- Total execution time: 0.4 hours
+- Total plans completed: 5
+- Average duration: 7.0 min
+- Total execution time: 0.6 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 3 | 24 min | 8 min |
+| 2 | 2 | 11 min | 5.5 min |
 
 **Recent Trend:**
 
-- Last 5 plans: Phase 1 Plan 1 (233s), Phase 1 Plan 2 (638s), Phase 1 Plan 3 (559s)
+- Last 5 plans: Phase 1 Plan 1 (233s), Phase 1 Plan 2 (638s), Phase 1 Plan 3 (559s), Phase 2 Plan 1 (4m), Phase 2 Plan 2 (7m)
 - Trend: Stable
 
 | Phase 1 P1 | 233 | 2 tasks | 4 files |
 | Phase 1 P2 | 638 | 2 tasks | 6 files |
 | Phase 1 P3 | 559 | 2 tasks | 17 files |
 | Phase 02-首页与导航重构 P01 | 4m | 2 tasks | 2 files |
+| Phase 02-首页与导航重构 P02 | 7m | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -74,11 +76,12 @@ Recent decisions affecting current work:
 - [Phase 1]: 解锁真实性统一标记为 demo-only，避免流程骨架被误认为真实成功。
 - [Phase 02-首页与导航重构]: 首页分组与底部导航先收口到纯 Kotlin 契约，避免 HomeScreen 与 AppNavGraph 各写一套角色判断。
 - [Phase 02-首页与导航重构]: 入口可见性统一复用 SecurityManager 权限函数，减少首页重构时的权限漂移风险。
+- [Phase 02-首页与导航重构]: 首页只渲染当前角色可执行的入口，不再用禁用按钮占位。
+- [Phase 02-首页与导航重构]: 底部导航继续保留 Phase 1 的路由守卫，但一级入口先按角色裁剪，避免点击后才被拒绝。
 
 ### Pending Todos
 
-- Phase 2: 执行 02-01-PLAN.md（角色感知入口契约）
-- Phase 2: 执行 02-02-PLAN.md（首页分区与底部导航重构）
+- Phase 3: 开始高频流程澄清规划与执行
 
 ### Blockers/Concerns
 
@@ -87,6 +90,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-31T07:26:51.736Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-31T07:30:00.404Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None

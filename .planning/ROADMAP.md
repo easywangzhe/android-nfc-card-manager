@@ -12,8 +12,8 @@
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: 基础治理与边界收口** - 先统一权限边界、能力真实性和 NFC 会话状态，避免后续页面改造返工。
-- [ ] **Phase 2: 首页与导航重构** - 重组首页入口与导航层级，让主任务、高风险入口和管理入口一眼可分。
+- [x] **Phase 1: 基础治理与边界收口** - 先统一权限边界、能力真实性和 NFC 会话状态，避免后续页面改造返工。 (completed 2026-03-31)
+- [x] **Phase 2: 首页与导航重构** - 重组首页入口与导航层级，让主任务、高风险入口和管理入口一眼可分。 (completed 2026-03-31)
 - [ ] **Phase 3: 高频流程澄清** - 优化读卡、写卡、格式化等高频流程的阶段反馈、结果拆分与下一步指引。
 - [ ] **Phase 4: 高风险流程强化** - 强化锁卡与解锁流程的风险提示、确认链路、处理中保护与结果来源表达。
 - [ ] **Phase 5: 辅助页统一收尾** - 统一模板、日志、设置等辅助页面的信息层级、审计可读性和安全说明。
@@ -47,7 +47,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 Plans:
 - [x] 02-01-PLAN.md — 定义角色感知的首页分组与底部导航共享契约
-- [ ] 02-02-PLAN.md — 落地首页三段式信息层级与按角色裁剪的底部导航
+- [x] 02-02-PLAN.md — 落地首页三段式信息层级与按角色裁剪的底部导航
 **UI hint**: yes
 
 ### Phase 3: 高频流程澄清
@@ -93,7 +93,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 基础治理与边界收口 | 3/3 | Complete | 2026-03-31 |
-| 2. 首页与导航重构 | 1/2 | In Progress|  |
+| 2. 首页与导航重构 | 2/2 | Complete   | 2026-03-31 |
 | 3. 高频流程澄清 | 0/TBD | Not started | - |
 | 4. 高风险流程强化 | 0/TBD | Not started | - |
 | 5. 辅助页统一收尾 | 0/TBD | Not started | - |
