@@ -399,6 +399,8 @@ fun WriteEditorScreen(
 
             item {
                 uiState.result?.let { result ->
+                    val guidance = uiState.resultGuidance
+                    val nextStep = uiState.nextStepGuidance
                     AppCard(modifier = Modifier.fillMaxWidth()) {
                         SectionTitle(if (result.success) "写卡结果" else "写卡异常")
                         Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -409,10 +411,38 @@ fun WriteEditorScreen(
                             KeyValueRow("UID", result.cardInfo.uid)
                             KeyValueRow("卡类型", result.cardInfo.techType.name)
                             Text(text = "结果：${result.message}")
-                            Text(text = "失败/说明：${result.writeReason}")
                             Text(text = "写入内容：${result.payloadPreview}")
-                            KeyValueRow("回读校验", if (result.verified) "通过" else "失败")
-                            Text(text = "校验说明：${result.verificationMessage}")
+
+                            guidance?.let {
+                                SectionTitle("写入执行结果")
+                                StatusPill(
+                                    text = it.executionTitle,
+                                    tone = if (it.executionTitle.contains("成功")) StatusTone.SUCCESS else StatusTone.ERROR,
+                                )
+                                Text(text = it.executionConclusion)
+                                Text(text = "执行说明：${result.writeReason}")
+
+                                SectionTitle("回读校验结果")
+                                StatusPill(
+                                    text = it.verificationTitle,
+                                    tone = if (it.verificationTitle.contains("通过")) StatusTone.SUCCESS else StatusTone.WARNING,
+                                )
+                                Text(text = it.verificationConclusion)
+                                Text(text = "校验细节：${result.verificationMessage}")
+                            } ?: run {
+                                Text(text = "失败/说明：${result.writeReason}")
+                                KeyValueRow("回读校验", if (result.verified) "通过" else "失败")
+                                Text(text = "校验说明：${result.verificationMessage}")
+                            }
+
+                            nextStep?.let {
+                                SectionTitle(it.title)
+                                Text(text = it.conclusion)
+                                Text(text = "判断依据：${it.reasonSummary}")
+                                Text(text = "建议动作：${it.recommendedAction}")
+                                KeyValueRow("建议 CTA", it.ctaLabel)
+                            }
+
                             if (result.message.contains("仅演示") || result.verificationMessage.contains("演示模式")) {
                                 StatusPill(text = "仅演示", tone = StatusTone.INFO)
                             }
