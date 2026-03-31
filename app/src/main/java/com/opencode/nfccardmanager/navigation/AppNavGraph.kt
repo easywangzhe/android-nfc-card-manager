@@ -35,7 +35,9 @@ import com.opencode.nfccardmanager.feature.audit.AuditLogDetailScreen
 import com.opencode.nfccardmanager.feature.audit.AuditLogScreen
 import com.opencode.nfccardmanager.feature.common.PermissionDeniedScreen
 import com.opencode.nfccardmanager.feature.format.FormatCardScreen
+import com.opencode.nfccardmanager.feature.home.BottomNavDestination
 import com.opencode.nfccardmanager.feature.home.HomeScreen
+import com.opencode.nfccardmanager.feature.home.buildBottomNavDestinations
 import com.opencode.nfccardmanager.feature.lock.LockRiskScreen
 import com.opencode.nfccardmanager.feature.read.ReadResultScreen
 import com.opencode.nfccardmanager.feature.scan.ScanMode
@@ -82,12 +84,7 @@ fun AppNavGraph() {
     val currentSession by SecurityManager.currentSession.collectAsStateWithLifecycle()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val bottomNavItems = listOf(
-        BottomNavItem(Routes.HOME, "首页", Icons.Filled.Home, Icons.Outlined.Home),
-        BottomNavItem(Routes.TEMPLATE, "模板", Icons.Filled.Widgets, Icons.Outlined.Widgets),
-        BottomNavItem(Routes.AUDIT, "日志", Icons.AutoMirrored.Filled.ReceiptLong, Icons.AutoMirrored.Outlined.ReceiptLong),
-        BottomNavItem(Routes.SETTINGS, "我的", Icons.Filled.Person, Icons.Outlined.Person),
-    )
+    val bottomNavItems = buildBottomNavDestinations(currentRole).mapNotNull(::toBottomNavItem)
     val showBottomBar = currentSession != null && currentRoute in bottomNavItems.map { it.route }
 
     LaunchedEffect(currentSession) {
@@ -164,10 +161,9 @@ fun AppNavGraph() {
                     onWriteClick = { navController.navigate(Routes.WRITE_EDITOR) },
                     onLockClick = { navController.navigate(Routes.LOCK_RISK) },
                     onUnlockClick = { navController.navigate(Routes.UNLOCK_VERIFY) },
-                    canRead = SecurityManager.canRead(currentRole),
-                    canWrite = SecurityManager.canWrite(currentRole),
-                    canLock = SecurityManager.canLock(currentRole),
-                    canUnlock = SecurityManager.canUnlock(currentRole),
+                    onTemplateClick = { navController.navigate(Routes.TEMPLATE) },
+                    onAuditClick = { navController.navigate(Routes.AUDIT) },
+                    onSettingsClick = { navController.navigate(Routes.SETTINGS) },
                 )
             }
             composable(
@@ -339,5 +335,20 @@ fun AppNavGraph() {
                 }
             }
         }
+    }
+}
+
+private fun toBottomNavItem(destination: BottomNavDestination): BottomNavItem? {
+    return when (destination.route) {
+        Routes.HOME -> BottomNavItem(Routes.HOME, destination.label, Icons.Filled.Home, Icons.Outlined.Home)
+        Routes.TEMPLATE -> BottomNavItem(Routes.TEMPLATE, destination.label, Icons.Filled.Widgets, Icons.Outlined.Widgets)
+        Routes.AUDIT -> BottomNavItem(
+            Routes.AUDIT,
+            destination.label,
+            Icons.AutoMirrored.Filled.ReceiptLong,
+            Icons.AutoMirrored.Outlined.ReceiptLong,
+        )
+        Routes.SETTINGS -> BottomNavItem(Routes.SETTINGS, destination.label, Icons.Filled.Person, Icons.Outlined.Person)
+        else -> null
     }
 }
