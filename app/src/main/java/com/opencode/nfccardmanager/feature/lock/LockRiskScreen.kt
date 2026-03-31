@@ -18,8 +18,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -28,8 +31,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.opencode.nfccardmanager.core.common.findActivity
 import com.opencode.nfccardmanager.core.nfc.NdefLocker
+import com.opencode.nfccardmanager.core.nfc.NfcOperationType
 import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
 import com.opencode.nfccardmanager.core.nfc.PasswordProtectedLocker
+import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
 import com.opencode.nfccardmanager.core.nfc.TagParser
 import com.opencode.nfccardmanager.core.nfc.model.CardInfo
 import com.opencode.nfccardmanager.core.nfc.model.LockCardResult
@@ -42,6 +47,7 @@ import com.opencode.nfccardmanager.ui.component.SecondaryActionButton
 import com.opencode.nfccardmanager.ui.component.SectionTitle
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,48 +64,30 @@ fun LockRiskScreen(
     val passwordLocker = remember { PasswordProtectedLocker() }
     val tagParser = remember { TagParser() }
     val scope = rememberCoroutineScope()
+    var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
 
-    DisposableEffect(sessionManager, uiState.stage) {
-        val nfcManager = sessionManager
-        if (nfcManager == null || uiState.stage != LockStage.LOCKING) {
-            onDispose { }
-        } else {
-            val callback = nfcManager.createReaderCallback { tag ->
-                scope.launch {
-                    val readResult = runCatching { tagParser.parse(tag) }.getOrNull()
-                    if (readResult == null) {
-                        viewModel.onError("锁卡前无法识别卡片能力，请重试")
-                        return@launch
-                    }
-                    viewModel.onTagResolved(readResult)
-                    val result = when (readResult.capability.lockMode) {
-                        LockMode.PASSWORD_PROTECTED -> passwordLocker.lock(readResult)
-                        LockMode.READ_ONLY_PERMANENT -> locker.makeReadOnly(tag)
-                        else -> LockCardResult(
-                            cardInfo = readResult.cardInfo,
-                            success = false,
-                            message = "当前卡片不支持锁卡",
-                            lockMode = LockMode.NONE,
-                            irreversible = false,
-                            verified = false,
-                            verificationMessage = "既不支持密码保护，也不支持永久只读锁定。",
-                        )
-                    }
-                    viewModel.onLockResult(result)
-                }
-            }
+    DisposableEffect(sessionManager) {
+        onDispose {
+            sessionManager?.releaseReaderMode(activeSession)
+            activeSession = null
+        }
+    }
 
-            if (nfcManager.isNfcAvailable() && nfcManager.isNfcEnabled()) {
-                nfcManager.startReaderMode(callback)
-                    .onFailure {
-                        viewModel.onError(it.message ?: "启动锁卡扫描失败")
-                    }
-            } else {
-                viewModel.onError("当前设备不支持 NFC 或 NFC 未开启")
-            }
+    LaunchedEffect(uiState.stage) {
+        if (uiState.stage == LockStage.SUCCESS || uiState.stage == LockStage.ERROR || uiState.stage == LockStage.IDLE || uiState.stage == LockStage.READY) {
+            sessionManager?.releaseReaderMode(activeSession)
+            activeSession = null
+        }
+    }
 
-            onDispose {
-                nfcManager.stopReaderMode()
+    LaunchedEffect(uiState.stage, activeSession?.token) {
+        val session = activeSession ?: return@LaunchedEffect
+        if (uiState.stage == LockStage.LOCKING) {
+            delay(15000)
+            if (activeSession?.token == session.token && viewModel.uiState.value.stage == LockStage.LOCKING) {
+                sessionManager?.releaseReaderMode(activeSession)
+                activeSession = null
+                viewModel.onError("15 秒内未检测到可锁定卡片，请确认 NFC 已开启并将卡片贴近手机背部")
             }
         }
     }
@@ -109,7 +97,13 @@ fun LockRiskScreen(
             CenterAlignedTopAppBar(
                 title = { Text("锁卡（永久只读）") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
+                    TextButton(
+                        onClick = {
+                            sessionManager?.releaseReaderMode(activeSession)
+                            activeSession = null
+                            onBack()
+                        }
+                    ) {
                         Text("返回")
                     }
                 },
@@ -172,9 +166,52 @@ fun LockRiskScreen(
 
             DangerActionButton(
                 text = "确认锁卡（高风险）",
-                onClick = { viewModel.startLocking() },
+                onClick = {
+                    val nfcManager = sessionManager
+                    if (uiState.stage != LockStage.READY) {
+                        viewModel.startLocking()
+                    } else if (nfcManager == null) {
+                        viewModel.onError("无法获取 Activity 上下文，暂时不能启动锁卡扫描")
+                    } else {
+                        val callback = nfcManager.createReaderCallback { tag ->
+                            scope.launch {
+                                val readResult = runCatching { tagParser.parse(tag) }.getOrNull()
+                                if (readResult == null) {
+                                    viewModel.onError("锁卡前无法识别卡片能力，请重试")
+                                    return@launch
+                                }
+                                viewModel.onTagResolved(readResult)
+                                val result = when (readResult.capability.lockMode) {
+                                    LockMode.PASSWORD_PROTECTED -> passwordLocker.lock(readResult)
+                                    LockMode.READ_ONLY_PERMANENT -> locker.makeReadOnly(tag)
+                                    else -> LockCardResult(
+                                        cardInfo = readResult.cardInfo,
+                                        success = false,
+                                        message = "当前卡片不支持锁卡",
+                                        lockMode = LockMode.NONE,
+                                        irreversible = false,
+                                        verified = false,
+                                        verificationMessage = "既不支持密码保护，也不支持永久只读锁定。",
+                                    )
+                                }
+                                viewModel.onLockResult(result)
+                            }
+                        }
+
+                        nfcManager.requestReaderMode(
+                            owner = "lock-screen",
+                            operation = NfcOperationType.LOCK,
+                            callback = callback,
+                        ).onSuccess { session ->
+                            activeSession = session
+                            viewModel.startLocking()
+                        }.onFailure {
+                            viewModel.onError(it.message ?: "启动锁卡扫描失败")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = uiState.stage == LockStage.READY || uiState.stage == LockStage.LOCKING,
+                enabled = uiState.stage == LockStage.READY && activeSession == null,
             )
 
             SecondaryActionButton(
@@ -197,6 +234,7 @@ fun LockRiskScreen(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
+                enabled = activeSession == null,
             )
 
             uiState.result?.let { result ->

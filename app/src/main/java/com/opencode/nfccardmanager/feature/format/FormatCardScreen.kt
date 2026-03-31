@@ -15,8 +15,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -24,7 +26,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.opencode.nfccardmanager.core.common.findActivity
 import com.opencode.nfccardmanager.core.nfc.NdefFormatter
+import com.opencode.nfccardmanager.core.nfc.NfcOperationType
 import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
+import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.KeyValueRow
 import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
@@ -45,34 +49,29 @@ fun FormatCardScreen(
     val nfcManager = remember(activity) { activity?.let { NfcSessionManager(it) } }
     val formatter = remember { NdefFormatter() }
     val scope = rememberCoroutineScope()
+    var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
 
-    DisposableEffect(nfcManager, uiState.stage) {
-        val session = nfcManager
-        if (session == null || uiState.stage != FormatStage.SCANNING) {
-            onDispose { }
-        } else {
-            val callback = session.createReaderCallback { tag ->
-                scope.launch {
-                    viewModel.onFormatResult(formatter.format(tag))
-                }
-            }
-            if (session.isNfcAvailable() && session.isNfcEnabled()) {
-                session.startReaderMode(callback).onFailure {
-                    viewModel.onError(it.message ?: "启动格式化扫描失败")
-                }
-            } else {
-                viewModel.onError("当前设备不支持 NFC 或 NFC 未开启")
-            }
-            onDispose { session.stopReaderMode() }
+    DisposableEffect(nfcManager) {
+        onDispose {
+            nfcManager?.releaseReaderMode(activeSession)
+            activeSession = null
         }
     }
 
-    LaunchedEffect(Unit) { viewModel.start() }
-
     LaunchedEffect(uiState.stage) {
+        if (uiState.stage == FormatStage.SUCCESS || uiState.stage == FormatStage.ERROR || uiState.stage == FormatStage.IDLE) {
+            nfcManager?.releaseReaderMode(activeSession)
+            activeSession = null
+        }
+    }
+
+    LaunchedEffect(uiState.stage, activeSession?.token) {
+        val session = activeSession ?: return@LaunchedEffect
         if (uiState.stage == FormatStage.SCANNING) {
             delay(15000)
-            if (viewModel.uiState.value.stage == FormatStage.SCANNING) {
+            if (activeSession?.token == session.token && viewModel.uiState.value.stage == FormatStage.SCANNING) {
+                nfcManager?.releaseReaderMode(activeSession)
+                activeSession = null
                 viewModel.onError("15 秒内未检测到可格式化卡片，请确认 NFC 已开启并将卡片贴近手机背部")
             }
         }
@@ -82,7 +81,15 @@ fun FormatCardScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("格式化卡") },
-                navigationIcon = { TextButton(onClick = onBack) { Text("返回") } },
+                navigationIcon = {
+                    TextButton(
+                        onClick = {
+                            nfcManager?.releaseReaderMode(activeSession)
+                            activeSession = null
+                            onBack()
+                        }
+                    ) { Text("返回") }
+                },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(),
             )
         }
@@ -117,15 +124,41 @@ fun FormatCardScreen(
             }
 
             PrimaryActionButton(
-                text = if (uiState.stage == FormatStage.SCANNING) "等待贴卡中..." else "重新扫描格式化",
-                onClick = { viewModel.start() },
+                text = if (uiState.stage == FormatStage.SCANNING) "等待贴卡中..." else "开始格式化",
+                onClick = {
+                    val sessionManager = nfcManager
+                    if (sessionManager == null) {
+                        viewModel.onError("无法获取 Activity 上下文，暂时不能启动格式化扫描")
+                    } else {
+                        val callback = sessionManager.createReaderCallback { tag ->
+                            scope.launch {
+                                viewModel.onFormatResult(formatter.format(tag))
+                            }
+                        }
+
+                        sessionManager.requestReaderMode(
+                            owner = "format-screen",
+                            operation = NfcOperationType.FORMAT,
+                            callback = callback,
+                        ).onSuccess { session ->
+                            activeSession = session
+                            viewModel.start()
+                        }.onFailure {
+                            viewModel.onError(it.message ?: "启动格式化扫描失败")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = uiState.stage != FormatStage.SCANNING,
+                enabled = uiState.stage != FormatStage.SCANNING && activeSession == null,
             )
 
             PrimaryActionButton(
                 text = "去写卡",
-                onClick = onGoWrite,
+                onClick = {
+                    nfcManager?.releaseReaderMode(activeSession)
+                    activeSession = null
+                    onGoWrite()
+                },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = uiState.result?.success == true,
             )

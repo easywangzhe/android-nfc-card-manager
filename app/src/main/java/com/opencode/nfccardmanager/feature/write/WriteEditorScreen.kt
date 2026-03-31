@@ -17,8 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -27,7 +29,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.opencode.nfccardmanager.core.common.findActivity
 import com.opencode.nfccardmanager.core.nfc.NdefWriter
+import com.opencode.nfccardmanager.core.nfc.NfcOperationType
 import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
+import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
 import com.opencode.nfccardmanager.core.nfc.TagParser
 import com.opencode.nfccardmanager.core.nfc.model.WriteCardRequest
 import com.opencode.nfccardmanager.core.nfc.model.WriteCardResult
@@ -59,70 +63,12 @@ fun WriteEditorScreen(
     val writer = remember { NdefWriter() }
     val tagParser = remember { TagParser() }
     val scope = rememberCoroutineScope()
+    var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
 
-    DisposableEffect(nfcSessionManager, uiState.stage, uiState.content) {
-        val sessionManager = nfcSessionManager
-        if (sessionManager == null || uiState.stage != WriteStage.WRITING) {
-            onDispose { }
-        } else {
-            val callback = sessionManager.createReaderCallback { tag ->
-                scope.launch {
-                    val uid = tag.id?.joinToString(separator = "") { byte -> "%02X".format(byte) } ?: "UNKNOWN"
-                    val techList = tag.techList.toList()
-                    val techType = when {
-                        techList.any { it.endsWith("Ndef") } -> "NDEF"
-                        techList.any { it.endsWith("MifareUltralight") } -> "ULTRALIGHT"
-                        techList.any { it.endsWith("MifareClassic") } -> "MIFARE_CLASSIC"
-                        techList.any { it.endsWith("IsoDep") } -> "ISO_DEP"
-                        techList.any { it.endsWith("NfcA") } -> "NFC_A"
-                        else -> "UNKNOWN"
-                    }
-                    val readResult = runCatching { tagParser.parse(tag) }.getOrNull()
-                    delay(300)
-                    val precheck = writer.precheck(tag, WriteCardRequest(uiState.content))
-                    viewModel.onRawTagDetected(
-                        uid = uid,
-                        techType = techType,
-                        techList = techList,
-                        supportsWrite = precheck.supportNdefWrite,
-                        canProceed = precheck.canProceed,
-                        precheckReason = precheck.reason,
-                        requiredBytes = precheck.requiredBytes,
-                        capacityBytes = precheck.capacityBytes,
-                        isWritable = precheck.isWritable,
-                    )
-                    readResult?.let {
-                        viewModel.onTagDetected(
-                            readResult = it,
-                            supportsWrite = precheck.supportNdefWrite,
-                            canProceed = precheck.canProceed,
-                            precheckReason = precheck.reason,
-                            requiredBytes = precheck.requiredBytes,
-                        )
-                    }
-                    if (!precheck.canProceed) {
-                        viewModel.onError(precheck.reason)
-                        return@launch
-                    }
-                    val result = withContext(Dispatchers.IO) {
-                        writer.writeText(tag, WriteCardRequest(uiState.content))
-                    }
-                    viewModel.onWriteResult(result)
-                }
-            }
-
-            if (sessionManager.isNfcAvailable() && sessionManager.isNfcEnabled()) {
-                sessionManager.startReaderMode(callback)
-                    .onFailure {
-                        viewModel.onError(it.message ?: "启动写卡扫描失败")
-                    }
-            } else {
-                viewModel.onError("当前设备不支持 NFC 或 NFC 未开启")
-            }
-
-            onDispose {
-                sessionManager.stopReaderMode()
-            }
+    DisposableEffect(nfcSessionManager) {
+        onDispose {
+            nfcSessionManager?.releaseReaderMode(activeSession)
+            activeSession = null
         }
     }
 
@@ -131,9 +77,19 @@ fun WriteEditorScreen(
     }
 
     LaunchedEffect(uiState.stage) {
+        if (uiState.stage == WriteStage.SUCCESS || uiState.stage == WriteStage.ERROR || uiState.stage == WriteStage.IDLE || uiState.stage == WriteStage.READY) {
+            nfcSessionManager?.releaseReaderMode(activeSession)
+            activeSession = null
+        }
+    }
+
+    LaunchedEffect(uiState.stage, activeSession?.token) {
+        val session = activeSession ?: return@LaunchedEffect
         if (uiState.stage == WriteStage.WRITING) {
             delay(15000)
-            if (viewModel.uiState.value.stage == WriteStage.WRITING) {
+            if (activeSession?.token == session.token && viewModel.uiState.value.stage == WriteStage.WRITING) {
+                nfcSessionManager?.releaseReaderMode(activeSession)
+                activeSession = null
                 viewModel.onError("15 秒内未检测到可写标签，请确认 NFC 已开启且标签支持 NDEF 写入")
             }
         }
@@ -141,7 +97,14 @@ fun WriteEditorScreen(
 
     Scaffold(
         topBar = {
-            AppTopBar(title = "NDEF 写卡", onBack = onBack)
+            AppTopBar(
+                title = "NDEF 写卡",
+                onBack = {
+                    nfcSessionManager?.releaseReaderMode(activeSession)
+                    activeSession = null
+                    onBack()
+                }
+            )
         },
     ) { paddingValues ->
         LazyColumn(
@@ -300,17 +263,85 @@ fun WriteEditorScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     PrimaryActionButton(
                         text = if (uiState.stage == WriteStage.WRITING) "等待贴卡中..." else "开始写卡",
-                        onClick = { viewModel.startWriting() },
+                        onClick = {
+                            val sessionManager = nfcSessionManager
+                            if (sessionManager == null) {
+                                viewModel.onError("无法获取 Activity 上下文，暂时不能启动写卡扫描")
+                            } else if (uiState.content.isBlank()) {
+                                viewModel.onError("写入内容不能为空")
+                            } else {
+                                val callback = sessionManager.createReaderCallback { tag ->
+                                    scope.launch {
+                                        val uid = tag.id?.joinToString(separator = "") { byte -> "%02X".format(byte) } ?: "UNKNOWN"
+                                        val techList = tag.techList.toList()
+                                        val techType = when {
+                                            techList.any { it.endsWith("Ndef") } -> "NDEF"
+                                            techList.any { it.endsWith("MifareUltralight") } -> "ULTRALIGHT"
+                                            techList.any { it.endsWith("MifareClassic") } -> "MIFARE_CLASSIC"
+                                            techList.any { it.endsWith("IsoDep") } -> "ISO_DEP"
+                                            techList.any { it.endsWith("NfcA") } -> "NFC_A"
+                                            else -> "UNKNOWN"
+                                        }
+                                        val readResult = runCatching { tagParser.parse(tag) }.getOrNull()
+                                        delay(300)
+                                        val precheck = writer.precheck(tag, WriteCardRequest(uiState.content))
+                                        viewModel.onRawTagDetected(
+                                            uid = uid,
+                                            techType = techType,
+                                            techList = techList,
+                                            supportsWrite = precheck.supportNdefWrite,
+                                            canProceed = precheck.canProceed,
+                                            precheckReason = precheck.reason,
+                                            requiredBytes = precheck.requiredBytes,
+                                            capacityBytes = precheck.capacityBytes,
+                                            isWritable = precheck.isWritable,
+                                        )
+                                        readResult?.let {
+                                            viewModel.onTagDetected(
+                                                readResult = it,
+                                                supportsWrite = precheck.supportNdefWrite,
+                                                canProceed = precheck.canProceed,
+                                                precheckReason = precheck.reason,
+                                                requiredBytes = precheck.requiredBytes,
+                                            )
+                                        }
+                                        if (!precheck.canProceed) {
+                                            viewModel.onError(precheck.reason)
+                                            return@launch
+                                        }
+                                        val result = withContext(Dispatchers.IO) {
+                                            writer.writeText(tag, WriteCardRequest(uiState.content))
+                                        }
+                                        viewModel.onWriteResult(result)
+                                    }
+                                }
+
+                                sessionManager.requestReaderMode(
+                                    owner = "write-screen",
+                                    operation = NfcOperationType.WRITE,
+                                    callback = callback,
+                                ).onSuccess { session ->
+                                    activeSession = session
+                                    viewModel.startWriting()
+                                }.onFailure {
+                                    viewModel.onError(it.message ?: "启动写卡扫描失败")
+                                }
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = uiState.content.isNotBlank() && uiState.stage != WriteStage.WRITING,
+                        enabled = uiState.content.isNotBlank() && uiState.stage != WriteStage.WRITING && activeSession == null,
                     )
 
                     if (uiState.stage == WriteStage.ERROR || uiState.detectedUid != null || uiState.lastErrorDetail.isNotBlank()) {
                         SecondaryActionButton(
                             text = "重新扫描 / 重试写卡",
-                            onClick = { viewModel.retryWriting() },
+                            onClick = {
+                                nfcSessionManager?.releaseReaderMode(activeSession)
+                                activeSession = null
+                                viewModel.resetResult()
+                            },
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = uiState.content.isNotBlank() && uiState.stage != WriteStage.WRITING,
+                            enabled = uiState.content.isNotBlank() && uiState.stage != WriteStage.WRITING && activeSession == null,
                         )
                     }
                 }

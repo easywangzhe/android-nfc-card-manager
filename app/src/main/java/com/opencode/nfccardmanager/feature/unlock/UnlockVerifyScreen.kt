@@ -17,8 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -26,7 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.opencode.nfccardmanager.core.common.findActivity
+import com.opencode.nfccardmanager.core.nfc.NfcOperationType
 import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
+import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
 import com.opencode.nfccardmanager.core.nfc.TagParser
 import com.opencode.nfccardmanager.core.nfc.UnlockExecutor
 import com.opencode.nfccardmanager.core.nfc.model.CardInfo
@@ -57,51 +61,29 @@ fun UnlockVerifyScreen(
     val tagParser = remember { TagParser() }
     val executor = remember { UnlockExecutor() }
     val scope = rememberCoroutineScope()
+    var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
 
-    DisposableEffect(nfcManager, uiState.stage) {
-        val session = nfcManager
-        if (session == null || uiState.stage != UnlockStage.SCANNING) {
-            onDispose { }
-        } else {
-            val callback = session.createReaderCallback { tag ->
-                scope.launch {
-                    runCatching { tagParser.parse(tag) }
-                        .onSuccess { readResult ->
-                            viewModel.onTagResolved(readResult)
-                            val result = executor.execute(
-                                readResult = readResult,
-                                request = UnlockCardRequest(
-                                    reason = uiState.reason,
-                                    credential = uiState.credential,
-                                ),
-                            )
-                            viewModel.onUnlockResult(result)
-                        }
-                        .onFailure {
-                            viewModel.onError("卡片识别失败，无法继续解锁流程")
-                        }
-                }
-            }
-
-            if (session.isNfcAvailable() && session.isNfcEnabled()) {
-                session.startReaderMode(callback)
-                    .onFailure {
-                        viewModel.onError(it.message ?: "启动解锁扫描失败")
-                    }
-            } else {
-                viewModel.onError("当前设备不支持 NFC 或 NFC 未开启")
-            }
-
-            onDispose {
-                session.stopReaderMode()
-            }
+    DisposableEffect(nfcManager) {
+        onDispose {
+            nfcManager?.releaseReaderMode(activeSession)
+            activeSession = null
         }
     }
 
     LaunchedEffect(uiState.stage) {
+        if (uiState.stage == UnlockStage.SUCCESS || uiState.stage == UnlockStage.ERROR || uiState.stage == UnlockStage.IDLE || uiState.stage == UnlockStage.READY) {
+            nfcManager?.releaseReaderMode(activeSession)
+            activeSession = null
+        }
+    }
+
+    LaunchedEffect(uiState.stage, activeSession?.token) {
+        val session = activeSession ?: return@LaunchedEffect
         if (uiState.stage == UnlockStage.SCANNING) {
             delay(15000)
-            if (viewModel.uiState.value.stage == UnlockStage.SCANNING) {
+            if (activeSession?.token == session.token && viewModel.uiState.value.stage == UnlockStage.SCANNING) {
+                nfcManager?.releaseReaderMode(activeSession)
+                activeSession = null
                 viewModel.onError("15 秒内未检测到可识别卡片，请确认 NFC 已开启并将卡片贴近手机背部")
             }
         }
@@ -112,7 +94,13 @@ fun UnlockVerifyScreen(
             CenterAlignedTopAppBar(
                 title = { Text("解锁") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) {
+                    TextButton(
+                        onClick = {
+                            nfcManager?.releaseReaderMode(activeSession)
+                            activeSession = null
+                            onBack()
+                        }
+                    ) {
                         Text("返回")
                     }
                 },
@@ -175,9 +163,47 @@ fun UnlockVerifyScreen(
 
             PrimaryActionButton(
                 text = "开始解锁（仅密码保护型）",
-                onClick = viewModel::startUnlock,
+                onClick = {
+                    val session = nfcManager
+                    if (uiState.stage != UnlockStage.READY) {
+                        viewModel.startUnlock()
+                    } else if (session == null) {
+                        viewModel.onError("无法获取 Activity 上下文，暂时不能启动解锁扫描")
+                    } else {
+                        val callback = session.createReaderCallback { tag ->
+                            scope.launch {
+                                runCatching { tagParser.parse(tag) }
+                                    .onSuccess { readResult ->
+                                        viewModel.onTagResolved(readResult)
+                                        val result = executor.execute(
+                                            readResult = readResult,
+                                            request = UnlockCardRequest(
+                                                reason = uiState.reason,
+                                                credential = uiState.credential,
+                                            ),
+                                        )
+                                        viewModel.onUnlockResult(result)
+                                    }
+                                    .onFailure {
+                                        viewModel.onError("卡片识别失败，无法继续解锁流程")
+                                    }
+                            }
+                        }
+
+                        session.requestReaderMode(
+                            owner = "unlock-screen",
+                            operation = NfcOperationType.UNLOCK,
+                            callback = callback,
+                        ).onSuccess { readerSession ->
+                            activeSession = readerSession
+                            viewModel.startUnlock()
+                        }.onFailure {
+                            viewModel.onError(it.message ?: "启动解锁扫描失败")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = uiState.stage == UnlockStage.READY || uiState.stage == UnlockStage.SCANNING,
+                enabled = uiState.stage == UnlockStage.READY && activeSession == null,
             )
 
             SecondaryActionButton(
@@ -197,6 +223,7 @@ fun UnlockVerifyScreen(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
+                enabled = activeSession == null,
             )
 
             uiState.result?.let { result ->
