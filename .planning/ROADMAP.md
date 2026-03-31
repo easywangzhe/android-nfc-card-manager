@@ -44,7 +44,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. 用户打开首页后，无需逐页试探，就能区分主任务入口、高风险入口和管理入口。
   2. 用户当前角色无权使用的首页入口不会误显示为可操作主入口。
   3. 用户在首页或导航切换时，能快速判断某入口属于日常操作、风险操作还是辅助管理，不会因信息层级混乱走错路径。
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [x] 02-01-PLAN.md — 定义角色感知的首页分组与底部导航共享契约
+- [ ] 02-02-PLAN.md — 落地首页三段式信息层级与按角色裁剪的底部导航
 **UI hint**: yes
 
 ### Phase 3: 高频流程澄清
@@ -90,7 +93,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 基础治理与边界收口 | 3/3 | Complete | 2026-03-31 |
-| 2. 首页与导航重构 | 0/TBD | Not started | - |
+| 2. 首页与导航重构 | 1/2 | In Progress|  |
 | 3. 高频流程澄清 | 0/TBD | Not started | - |
 | 4. 高风险流程强化 | 0/TBD | Not started | - |
 | 5. 辅助页统一收尾 | 0/TBD | Not started | - |

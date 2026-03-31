@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 1-03-PLAN.md
-last_updated: "2026-03-31T07:01:04.499Z"
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-03-31T07:26:51.737Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 0
+  total_plans: 2
+  completed_plans: 4
   percent: 20
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 2 of 5 (首页与导航重构)
-Plan: 0 of TBD in current phase
-Status: Planned, ready to execute
+Plan: 1 of 2 in current phase
+Status: Ready to execute
 Last activity: 2026-03-31
 
 Progress: [██░░░░░░░░] 20%
@@ -54,6 +54,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 1 P1 | 233 | 2 tasks | 4 files |
 | Phase 1 P2 | 638 | 2 tasks | 6 files |
 | Phase 1 P3 | 559 | 2 tasks | 17 files |
+| Phase 02-首页与导航重构 P01 | 4m | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -71,10 +72,13 @@ Recent decisions affecting current work:
 - [Phase 1]: 页面回退、超时、成功、失败和 Compose dispose 全部走同一释放路径，避免幽灵会话残留。
 - [Phase 1]: 执行入口统一通过 ProtectedAction 做角色校验，避免路由守卫与页面按钮判断分叉。
 - [Phase 1]: 解锁真实性统一标记为 demo-only，避免流程骨架被误认为真实成功。
+- [Phase 02-首页与导航重构]: 首页分组与底部导航先收口到纯 Kotlin 契约，避免 HomeScreen 与 AppNavGraph 各写一套角色判断。
+- [Phase 02-首页与导航重构]: 入口可见性统一复用 SecurityManager 权限函数，减少首页重构时的权限漂移风险。
 
 ### Pending Todos
 
-- Phase 2: 开始首页入口与导航层级重构规划与执行
+- Phase 2: 执行 02-01-PLAN.md（角色感知入口契约）
+- Phase 2: 执行 02-02-PLAN.md（首页分区与底部导航重构）
 
 ### Blockers/Concerns
 
@@ -83,6 +87,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-31T07:01:04.497Z
-Stopped at: Completed 1-03-PLAN.md
+Last session: 2026-03-31T07:26:51.736Z
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
