@@ -3,14 +3,16 @@ package com.opencode.nfccardmanager.feature.write
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.opencode.nfccardmanager.core.database.AuditLogManager
+import com.opencode.nfccardmanager.core.nfc.model.FlowNextStepGuidance
 import com.opencode.nfccardmanager.core.nfc.model.ReadCardResult
 import com.opencode.nfccardmanager.core.nfc.model.WriteCardResult
+import com.opencode.nfccardmanager.core.nfc.model.buildWriteOutcomeGuidance
 import com.opencode.nfccardmanager.feature.template.LocalTemplateRepository
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class WriteViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(
@@ -42,6 +44,8 @@ class WriteViewModel : ViewModel() {
                 stage = WriteStage.READY,
                 message = "已应用模板：${template.name}，请确认内容后贴卡写入",
                 result = null,
+                resultGuidance = null,
+                nextStepGuidance = null,
             )
         }
     }
@@ -57,6 +61,8 @@ class WriteViewModel : ViewModel() {
                 } else {
                     "内容已准备，请点击开始写卡后再贴近支持 NDEF 的标签。"
                 },
+                resultGuidance = null,
+                nextStepGuidance = null,
             )
         }
     }
@@ -82,6 +88,8 @@ class WriteViewModel : ViewModel() {
                 detectedTechList = emptyList(),
                 lastErrorDetail = "",
                 result = null,
+                resultGuidance = null,
+                nextStepGuidance = null,
             )
         }
     }
@@ -166,6 +174,7 @@ class WriteViewModel : ViewModel() {
     }
 
     fun onWriteResult(result: WriteCardResult) {
+        val guidance = buildWriteOutcomeGuidance(result)
         AuditLogManager.save(
             operationType = "WRITE",
             cardUid = result.cardInfo.uid,
@@ -178,6 +187,8 @@ class WriteViewModel : ViewModel() {
                 stage = if (result.success) WriteStage.SUCCESS else WriteStage.ERROR,
                 message = result.message,
                 result = result,
+                resultGuidance = guidance,
+                nextStepGuidance = guidance.nextStep,
             )
         }
     }
@@ -196,6 +207,8 @@ class WriteViewModel : ViewModel() {
                 message = message,
                 lastErrorDetail = message,
                 result = null,
+                resultGuidance = null,
+                nextStepGuidance = buildGenericErrorNextStep(message),
             )
         }
     }
@@ -217,7 +230,17 @@ class WriteViewModel : ViewModel() {
                 detectedTechList = emptyList(),
                 lastErrorDetail = "",
                 result = null,
+                resultGuidance = null,
+                nextStepGuidance = null,
             )
         }
     }
+
+    private fun buildGenericErrorNextStep(message: String) = FlowNextStepGuidance(
+        title = "推荐下一步",
+        conclusion = message,
+        reasonSummary = message,
+        recommendedAction = "请先检查卡片稳定性与兼容性，再重新贴卡重试。",
+        ctaLabel = "重新写卡",
+    )
 }
