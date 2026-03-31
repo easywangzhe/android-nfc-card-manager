@@ -2,9 +2,15 @@ package com.opencode.nfccardmanager.feature.lock
 
 import androidx.lifecycle.ViewModel
 import com.opencode.nfccardmanager.core.database.AuditLogManager
+import com.opencode.nfccardmanager.core.nfc.model.CardCapability
+import com.opencode.nfccardmanager.core.nfc.model.HighRiskSupportSummary
 import com.opencode.nfccardmanager.core.nfc.model.LockCardResult
 import com.opencode.nfccardmanager.core.nfc.model.LockMode
 import com.opencode.nfccardmanager.core.nfc.model.ReadCardResult
+import com.opencode.nfccardmanager.core.nfc.model.buildLockResultGuidance
+import com.opencode.nfccardmanager.core.nfc.model.buildLockSupportSummary
+import com.opencode.nfccardmanager.core.security.SecurityManager
+import com.opencode.nfccardmanager.core.security.maskRiskSensitiveValue
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +26,7 @@ class LockViewModel : ViewModel() {
     }
 
     fun onConfirmTextChange(value: String) {
-        _uiState.update { it.copy(confirmText = value.uppercase(), result = null) }
+        _uiState.update { it.copy(confirmText = value.uppercase(), result = null, resultGuidance = null) }
         updateStage()
     }
 
@@ -34,15 +40,18 @@ class LockViewModel : ViewModel() {
                 stage = LockStage.LOCKING,
                 message = "请将支持 NDEF 的标签贴近手机背部，执行永久只读锁定",
                 result = null,
+                resultGuidance = null,
             )
         }
     }
 
     fun onTagResolved(readResult: ReadCardResult) {
         val recommended = readResult.capability.lockMode
+        val supportSummary = buildLockSupportSummary(readResult.capability)
         _uiState.update {
             it.copy(
                 recommendedMode = recommended,
+                supportSummary = supportSummary,
                 modeHint = when (recommended) {
                     LockMode.PASSWORD_PROTECTED -> "检测到该卡支持密码保护，系统将优先采用可授权解锁的锁定方案。"
                     LockMode.READ_ONLY_PERMANENT -> "该卡不支持密码保护，将降级为永久只读锁定，请确认不可逆风险。"
@@ -53,6 +62,7 @@ class LockViewModel : ViewModel() {
                     LockMode.READ_ONLY_PERMANENT -> "已识别仅支持永久只读的卡片，继续后将执行不可逆锁卡。"
                     else -> "当前卡片不支持锁卡。"
                 },
+                maskedSensitiveFields = buildMaskedFields(readResult.cardInfo.uid, recommended),
             )
         }
     }
@@ -70,6 +80,18 @@ class LockViewModel : ViewModel() {
                 stage = if (result.success) LockStage.SUCCESS else LockStage.ERROR,
                 message = result.message,
                 result = result,
+                resultGuidance = buildLockResultGuidance(result),
+                supportSummary = buildLockSupportSummary(
+                    CardCapability(
+                        canRead = true,
+                        canWrite = true,
+                        canLock = result.lockMode != LockMode.NONE,
+                        lockMode = result.lockMode,
+                        canUnlock = result.lockMode == LockMode.PASSWORD_PROTECTED,
+                        requiresAuthForWrite = result.lockMode == LockMode.PASSWORD_PROTECTED,
+                    )
+                ),
+                maskedSensitiveFields = buildMaskedFields(result.cardInfo.uid, result.lockMode),
             )
         }
     }
@@ -83,7 +105,7 @@ class LockViewModel : ViewModel() {
             message = message,
         )
         _uiState.update {
-            it.copy(stage = LockStage.ERROR, message = message)
+            it.copy(stage = LockStage.ERROR, message = message, resultGuidance = null)
         }
     }
 
@@ -94,15 +116,39 @@ class LockViewModel : ViewModel() {
 
     private fun updateStage() {
         val state = _uiState.value
+        val supportSummary = state.supportSummary ?: buildLockSupportSummary(null)
         _uiState.update {
             it.copy(
                 stage = if (canStartLock()) LockStage.READY else LockStage.IDLE,
                 message = when {
                     canStartLock() -> "确认条件已满足，点击开始锁卡后贴卡执行"
-                    state.confirmText.isNotBlank() && state.confirmText != "LOCK" -> "确认词必须为 LOCK"
-                    else -> "锁卡前会先识别卡片能力，并优先使用可解锁的密码保护方案。"
+                    else -> "前置条件未满足，暂不能开始锁卡。"
                 },
+                supportSummary = supportSummary,
+                prerequisites = buildPrerequisites(state.riskAcknowledged, state.confirmText),
             )
         }
+    }
+
+    private fun buildPrerequisites(riskAcknowledged: Boolean, confirmText: String): List<RiskPrerequisite> {
+        return listOf(
+            RiskPrerequisite(label = "已勾选不可逆风险确认", satisfied = riskAcknowledged),
+            RiskPrerequisite(label = "已输入确认词 LOCK", satisfied = confirmText == "LOCK"),
+        )
+    }
+
+    private fun buildMaskedFields(uid: String, lockMode: LockMode): List<MaskedRiskField> {
+        val role = SecurityManager.currentRole.value
+        return listOf(
+            MaskedRiskField(label = "UID", value = maskRiskSensitiveValue(uid, role)),
+            MaskedRiskField(
+                label = "锁定方式摘要",
+                value = when (lockMode) {
+                    LockMode.PASSWORD_PROTECTED -> "密码保护"
+                    LockMode.READ_ONLY_PERMANENT -> "永久只读"
+                    LockMode.NONE -> "不支持"
+                }
+            ),
+        )
     }
 }
