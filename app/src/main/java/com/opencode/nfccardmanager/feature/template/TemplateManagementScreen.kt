@@ -2,6 +2,7 @@ package com.opencode.nfccardmanager.feature.template
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,6 +24,8 @@ import com.opencode.nfccardmanager.ui.component.AppTopBar
 import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
 import com.opencode.nfccardmanager.ui.component.SecondaryActionButton
 import com.opencode.nfccardmanager.ui.component.SectionTitle
+import com.opencode.nfccardmanager.ui.component.SupportImpactBadge
+import com.opencode.nfccardmanager.ui.component.SupportPageSummaryCard
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
 import com.opencode.nfccardmanager.ui.component.appPagePadding
@@ -45,13 +48,23 @@ fun TemplateManagementScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
+                SupportPageSummaryCard(summary = uiState.pageSummary)
+            }
+
+            item {
                 AppCard(modifier = Modifier.fillMaxWidth()) {
-                    SectionTitle("模板工作台")
+                    SectionTitle("当前说明")
                     Text(text = uiState.message, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
-                    StatusPill(
-                        text = if (uiState.editingTemplateId == null) "新增模式" else "编辑模式",
-                        tone = if (uiState.editingTemplateId == null) StatusTone.INFO else StatusTone.WARNING,
-                    )
+                    Column(
+                        modifier = Modifier.padding(top = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        StatusPill(
+                            text = if (uiState.editingTemplateId == null) "新增模式" else "编辑模式",
+                            tone = if (uiState.editingTemplateId == null) StatusTone.INFO else StatusTone.WARNING,
+                        )
+                        SupportImpactBadge(impact = uiState.pageSummary.impact)
+                    }
                 }
             }
 
@@ -116,10 +129,13 @@ fun TemplateManagementScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(text = "${template.name}（${template.version}）")
-                        StatusPill("已发布", StatusTone.SUCCESS)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            StatusPill("本地模板", StatusTone.SUCCESS)
+                            SupportImpactBadge(impact = uiState.pageSummary.impact)
+                        }
                         Text(text = "说明：${template.description}")
                         Text(text = "内容：${template.content}")
-                        PrimaryActionButton(
+                    PrimaryActionButton(
                             text = "编辑",
                             onClick = { viewModel.startEdit(template) },
                             modifier = Modifier.fillMaxWidth(),

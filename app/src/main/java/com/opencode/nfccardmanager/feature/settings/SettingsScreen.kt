@@ -21,10 +21,16 @@ import com.opencode.nfccardmanager.core.database.AuditLogManager
 import com.opencode.nfccardmanager.core.security.SecurityManager
 import com.opencode.nfccardmanager.core.security.UserSession
 import com.opencode.nfccardmanager.feature.read.ReadResultStore
+import com.opencode.nfccardmanager.feature.support.SupportImpact
+import com.opencode.nfccardmanager.feature.support.SupportSection
+import com.opencode.nfccardmanager.feature.support.supportPageSummary
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.AppTopBar
+import com.opencode.nfccardmanager.ui.component.DangerActionButton
 import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
 import com.opencode.nfccardmanager.ui.component.SectionTitle
+import com.opencode.nfccardmanager.ui.component.SupportImpactBadge
+import com.opencode.nfccardmanager.ui.component.SupportPageSummaryCard
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
 import com.opencode.nfccardmanager.ui.component.appPagePadding
@@ -45,7 +51,18 @@ fun SettingsScreen(
             else -> "NFC 未开启"
         }
     }
-    var cacheMessage by remember { mutableStateOf("可清理本地审计日志与最近读卡缓存") }
+    val pageSummary = remember {
+        supportPageSummary(
+            title = "设置与本地状态",
+            impact = SupportImpact.LOCAL_CONVENIENCE,
+            summary = "本页用于说明账号、设备、本地缓存和追责记录边界；普通清理不会直接改变卡片业务状态。",
+            sections = listOf(
+                SupportSection("账号与设备", "查看当前登录角色与 NFC 状态"),
+                SupportSection("本地清理", "区分缓存便利与追责记录"),
+            ),
+        )
+    }
+    var cacheMessage by remember { mutableStateOf("可分别清理最近读卡缓存或本地审计日志。") }
 
     Scaffold(
         topBar = {
@@ -56,6 +73,10 @@ fun SettingsScreen(
             modifier = Modifier.appPagePadding(paddingValues),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            item {
+                SupportPageSummaryCard(summary = pageSummary)
+            }
+
             item {
                 AppCard(modifier = Modifier.fillMaxWidth()) {
                     SectionTitle("账号信息")
@@ -98,7 +119,7 @@ fun SettingsScreen(
 
             item {
                 AppCard(modifier = Modifier.fillMaxWidth()) {
-                    SectionTitle("缓存与说明")
+                    SectionTitle("本地清理与说明")
                     Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(text = cacheMessage)
                         Text(text = "1. 当前登录态已持久化保存")
@@ -110,11 +131,33 @@ fun SettingsScreen(
 
             item {
                 PrimaryActionButton(
-                    text = "清理缓存",
+                    text = "清理最近读卡缓存",
+                    onClick = {
+                        ReadResultStore.clear()
+                        cacheMessage = "最近读卡缓存已清理；这只影响本地查看便利，不影响审计追责记录。"
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+
+            item {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("影响范围")
+                    Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SupportImpactBadge(impact = SupportImpact.LOCAL_CONVENIENCE)
+                        Text(text = "清理最近读卡缓存只影响本地查看与回显便利。")
+                        SupportImpactBadge(impact = SupportImpact.TRACEABILITY)
+                        Text(text = "清空本地审计日志会影响后续追责与复盘，请谨慎执行。")
+                    }
+                }
+            }
+
+            item {
+                DangerActionButton(
+                    text = "清空本地审计日志",
                     onClick = {
                         AuditLogManager.clearAll()
-                        ReadResultStore.clear()
-                        cacheMessage = "本地审计日志与最近读卡缓存已清理"
+                        cacheMessage = "本地审计日志已清空；最近读卡缓存未受影响。"
                     },
                     modifier = Modifier.fillMaxWidth(),
                 )

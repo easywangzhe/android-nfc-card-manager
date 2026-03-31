@@ -2,6 +2,10 @@ package com.opencode.nfccardmanager.feature.template
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.opencode.nfccardmanager.feature.support.SupportImpact
+import com.opencode.nfccardmanager.feature.support.SupportPageSummary
+import com.opencode.nfccardmanager.feature.support.SupportSection
+import com.opencode.nfccardmanager.feature.support.supportPageSummary
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +18,8 @@ data class TemplateManagementUiState(
     val nameInput: String = "",
     val descriptionInput: String = "",
     val contentInput: String = "",
-    val message: String = "可新增、编辑、删除本地模板。",
+    val message: String = "可新增、编辑、删除本地模板；这些改动只影响后续写卡复用效率。",
+    val pageSummary: SupportPageSummary = templatePageSummary(),
 )
 
 class TemplateManagementViewModel : ViewModel() {
@@ -52,7 +57,8 @@ class TemplateManagementViewModel : ViewModel() {
                 nameInput = "",
                 descriptionInput = "",
                 contentInput = "",
-                message = "请输入模板信息后点击保存新增。",
+                message = "请输入本地模板信息后点击保存新增；不会直接修改当前卡片。",
+                pageSummary = templatePageSummary(),
             )
         }
     }
@@ -64,7 +70,10 @@ class TemplateManagementViewModel : ViewModel() {
                 nameInput = template.name,
                 descriptionInput = template.description,
                 contentInput = template.content,
-                message = "已进入编辑模式：${template.name}",
+                message = "已进入本地模板编辑模式：${template.name}",
+                pageSummary = templatePageSummary(
+                    summary = "模板仅用于本地复用与后续写卡准备，不会直接修改当前卡片。",
+                ),
             )
         }
     }
@@ -85,10 +94,11 @@ class TemplateManagementViewModel : ViewModel() {
             )
             _uiState.update {
                 it.copy(
-                    message = "模板新增成功",
+                    message = "本地模板新增成功，可继续用于后续写卡复用。",
                     nameInput = "",
                     descriptionInput = "",
                     contentInput = "",
+                    pageSummary = templatePageSummary(),
                 )
             }
         } else {
@@ -101,10 +111,11 @@ class TemplateManagementViewModel : ViewModel() {
             _uiState.update {
                 it.copy(
                     editingTemplateId = null,
-                    message = "模板更新成功",
+                    message = "本地模板更新成功，不会直接修改当前卡片。",
                     nameInput = "",
                     descriptionInput = "",
                     contentInput = "",
+                    pageSummary = templatePageSummary(),
                 )
             }
         }
@@ -119,11 +130,35 @@ class TemplateManagementViewModel : ViewModel() {
                     nameInput = "",
                     descriptionInput = "",
                     contentInput = "",
-                    message = "模板已删除",
+                    message = "本地模板已删除，已移除对应复用入口。",
+                    pageSummary = templatePageSummary(),
                 )
             } else {
-                it.copy(message = "模板已删除")
+                it.copy(
+                    message = "本地模板已删除，已移除对应复用入口。",
+                    pageSummary = templatePageSummary(),
+                )
             }
         }
     }
+}
+
+private fun templatePageSummary(
+    summary: String = "模板只影响后续写卡的本地复用效率，不会直接修改当前卡片。",
+): SupportPageSummary {
+    return supportPageSummary(
+        title = "模板工作台",
+        impact = SupportImpact.LOCAL_CONVENIENCE,
+        summary = summary,
+        sections = listOf(
+            SupportSection(
+                title = "模板编辑",
+                description = "维护本地复用内容",
+            ),
+            SupportSection(
+                title = "模板列表",
+                description = "查看版本与用途说明",
+            ),
+        ),
+    )
 }
