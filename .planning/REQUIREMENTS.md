@@ -17,7 +17,7 @@ Requirements for this brownfield optimization round. Each requirement will map t
 
 ### Flow Safety
 
-- [ ] **FLOW-01**: User must explicitly start NFC scanning before a read, write, format, lock, or unlock session begins.
+- [x] **FLOW-01**: User must explicitly start NFC scanning before a read, write, format, lock, or unlock session begins.
 - [x] **FLOW-02**: User can perform one NFC operation session at a time without duplicate callbacks or repeated execution.
 - [x] **FLOW-03**: User can distinguish the current phase of an operation, including waiting, scanning, processing, success, and failure.
 - [ ] **FLOW-04**: User can distinguish write success from read-back verification success after a write operation.
@@ -79,7 +79,7 @@ Which phases cover which requirements.
 | SHELL-03 | Phase 1 | Pending |
 | SHELL-04 | Phase 1 | Pending |
 | SHELL-05 | Phase 1 | Complete |
-| FLOW-01 | Phase 1 | Pending |
+| FLOW-01 | Phase 1 | Complete |
 | FLOW-02 | Phase 1 | Complete |
 | FLOW-03 | Phase 1 | Complete |
 | FLOW-04 | Phase 3 | Pending |
