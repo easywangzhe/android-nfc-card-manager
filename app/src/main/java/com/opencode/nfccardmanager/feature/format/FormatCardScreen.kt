@@ -29,6 +29,7 @@ import com.opencode.nfccardmanager.core.nfc.NdefFormatter
 import com.opencode.nfccardmanager.core.nfc.NfcOperationType
 import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
 import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
+import com.opencode.nfccardmanager.core.nfc.model.buildFormatNextStepGuidance
 import com.opencode.nfccardmanager.core.nfc.model.presentation
 import com.opencode.nfccardmanager.core.nfc.model.toCapabilityAuthenticity
 import com.opencode.nfccardmanager.core.nfc.model.toNfcFlowStage
@@ -128,6 +129,7 @@ fun FormatCardScreen(
             }
 
             uiState.result?.let { result ->
+                val guidance = uiState.resultGuidance ?: buildFormatNextStepGuidance(result)
                 AppCard(modifier = Modifier.fillMaxWidth()) {
                     SectionTitle(if (result.success) "格式化成功" else "格式化失败")
                     Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -135,7 +137,13 @@ fun FormatCardScreen(
                         KeyValueRow("卡类型", result.cardInfo.techType.name)
                         KeyValueRow("状态", result.status)
                         Text("结果：${result.message}")
-                        Text("说明：${result.reason}")
+                        SectionTitle("发生了什么")
+                        Text(guidance.conclusion)
+                        SectionTitle("为什么")
+                        Text(guidance.reasonSummary)
+                        SectionTitle(guidance.title)
+                        Text(guidance.recommendedAction)
+                        KeyValueRow("建议 CTA", guidance.ctaLabel)
                     }
                 }
             }
@@ -176,7 +184,7 @@ fun FormatCardScreen(
             )
 
             PrimaryActionButton(
-                text = "去写卡",
+                text = uiState.resultGuidance?.ctaLabel?.takeIf { uiState.result?.success == true } ?: "去写卡",
                 onClick = {
                     nfcManager?.releaseReaderMode(activeSession)
                     activeSession = null

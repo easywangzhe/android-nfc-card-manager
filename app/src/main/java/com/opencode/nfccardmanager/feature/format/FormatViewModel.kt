@@ -3,6 +3,7 @@ package com.opencode.nfccardmanager.feature.format
 import androidx.lifecycle.ViewModel
 import com.opencode.nfccardmanager.core.database.AuditLogManager
 import com.opencode.nfccardmanager.core.nfc.model.FormatCardResult
+import com.opencode.nfccardmanager.core.nfc.model.buildFormatNextStepGuidance
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,11 +19,13 @@ class FormatViewModel : ViewModel() {
                 stage = FormatStage.SCANNING,
                 message = "等待贴卡，检测到支持的卡片后将尝试格式化为 NDEF。",
                 result = null,
+                resultGuidance = null,
             )
         }
     }
 
     fun onFormatResult(result: FormatCardResult) {
+        val guidance = buildFormatNextStepGuidance(result)
         AuditLogManager.save(
             operationType = "FORMAT",
             cardUid = result.cardInfo.uid,
@@ -35,6 +38,7 @@ class FormatViewModel : ViewModel() {
                 stage = if (result.success) FormatStage.SUCCESS else FormatStage.ERROR,
                 message = result.message,
                 result = result,
+                resultGuidance = guidance,
             )
         }
     }
@@ -48,7 +52,17 @@ class FormatViewModel : ViewModel() {
             message = message,
         )
         _uiState.update {
-            it.copy(stage = FormatStage.ERROR, message = message)
+            it.copy(
+                stage = FormatStage.ERROR,
+                message = message,
+                resultGuidance = com.opencode.nfccardmanager.core.nfc.model.FlowNextStepGuidance(
+                    title = "推荐下一步",
+                    conclusion = message,
+                    reasonSummary = message,
+                    recommendedAction = "请先保持卡片稳定后重新贴卡；若仍失败，暂停继续格式化并检查卡片兼容性。",
+                    ctaLabel = "重新格式化",
+                ),
+            )
         }
     }
 }
