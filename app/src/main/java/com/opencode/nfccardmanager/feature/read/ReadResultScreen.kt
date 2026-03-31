@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.opencode.nfccardmanager.core.nfc.model.NfcFlowStage
+import com.opencode.nfccardmanager.core.nfc.model.buildReadNextStepGuidance
 import com.opencode.nfccardmanager.core.nfc.model.presentation
 import com.opencode.nfccardmanager.core.nfc.model.toCapabilityAuthenticity
 import com.opencode.nfccardmanager.core.security.ProtectedAction
@@ -44,6 +45,7 @@ fun ReadResultScreen(
 ) {
     val latestResult by ReadResultStore.latestResult.collectAsStateWithLifecycle()
     val stagePresentation = NfcFlowStage.SUCCESS.presentation()
+    val readGuidance = latestResult?.let(::buildReadNextStepGuidance)
     val readAuthenticity = ProtectedAction.READ.toCapabilityAuthenticity(latestResult?.capability).presentation()
     val writeAuthenticity = ProtectedAction.WRITE.toCapabilityAuthenticity(latestResult?.capability).presentation()
     val lockAuthenticity = ProtectedAction.LOCK.toCapabilityAuthenticity(latestResult?.capability).presentation()
@@ -62,13 +64,7 @@ fun ReadResultScreen(
                 AppCard(modifier = Modifier.fillMaxWidth()) {
                     Text(text = "读卡结果", style = MaterialTheme.typography.headlineSmall)
                     Text(
-                        text = when (latestResult?.readStatus) {
-                            "READ_SUCCESS" -> "关键信息已解析完成，可继续格式化或后续业务操作。"
-                            "EMPTY_NDEF" -> "当前是空 NDEF 标签，可继续格式化或写入内容。"
-                            "NON_NDEF" -> "已识别到卡片，但当前不能按 NDEF 内容直接读取。"
-                            "READ_ERROR" -> "读取过程中发生异常，请参考下方诊断后重试。"
-                            else -> "等待展示完整读卡结果。"
-                        },
+                        text = readGuidance?.conclusion ?: "等待展示完整读卡结果。",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(top = 8.dp),
                     )
@@ -116,14 +112,26 @@ fun ReadResultScreen(
             }
 
             item {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(text = readGuidance?.recommendedAction ?: "请先确认读卡结果后再继续操作。")
+                        readGuidance?.let {
+                            KeyValueRow("推荐 CTA", it.ctaLabel)
+                            Text(text = "判断依据：${it.reasonSummary}")
+                        }
+                    }
+                }
+            }
+
+            item {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                     PrimaryActionButton(
-                        text = "格式化卡",
+                        text = if (readGuidance?.ctaLabel == "先去格式化") "先去格式化" else "格式化卡",
                         onClick = onFormatCard,
                         modifier = Modifier.weight(1f),
                     )
                     SecondaryActionButton(
-                        text = "重新读卡",
+                        text = if (readGuidance?.ctaLabel == "重新读卡") "重新读卡" else "返回重新读卡",
                         onClick = onBack,
                         modifier = Modifier.weight(1f),
                     )
