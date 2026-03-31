@@ -1,0 +1,93 @@
+# Roadmap: Android NFC Card Manager
+
+## Overview
+
+本轮路线图基于 brownfield 渐进式改造展开：先收口权限、状态语义、能力真实性与单次 NFC 会话边界，再重组首页与导航，随后依次优化高频流程、高风险流程和辅助页面。目标是在不重写既有 NFC 底层能力的前提下，让用户更清楚地理解当前状态、风险提示与下一步动作。
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+Decimal phases appear between their surrounding integers in numeric order.
+
+- [ ] **Phase 1: 基础治理与边界收口** - 先统一权限边界、能力真实性和 NFC 会话状态，避免后续页面改造返工。
+- [ ] **Phase 2: 首页与导航重构** - 重组首页入口与导航层级，让主任务、高风险入口和管理入口一眼可分。
+- [ ] **Phase 3: 高频流程澄清** - 优化读卡、写卡、格式化等高频流程的阶段反馈、结果拆分与下一步指引。
+- [ ] **Phase 4: 高风险流程强化** - 强化锁卡与解锁流程的风险提示、确认链路、处理中保护与结果来源表达。
+- [ ] **Phase 5: 辅助页统一收尾** - 统一模板、日志、设置等辅助页面的信息层级、审计可读性和安全说明。
+
+## Phase Details
+
+### Phase 1: 基础治理与边界收口
+**Goal**: 用户在进入任一 NFC 流程前，能看到一致的能力真实性、权限边界和流程状态，并且一次只会发生一个受控操作会话。
+**Depends on**: Nothing (first phase)
+**Requirements**: SHELL-03, SHELL-04, SHELL-05, FLOW-01, FLOW-02, FLOW-03
+**Success Criteria** (what must be TRUE):
+  1. 用户无法通过导航或直接路由进入自己无权访问的页面；即使误入，也不能执行受限 NFC 操作。
+  2. 用户必须明确点击开始后，读卡、写卡、格式化、锁卡或解锁流程才会进入扫描会话。
+  3. 用户在任一操作中都能看懂当前处于等待、扫描中、处理中、成功或失败哪个阶段。
+  4. 用户在应用内能区分某项能力是已支持、未验证、仅演示还是未实现，而不会把 demo 结果误认为真实成功。
+  5. 用户连续贴卡或重复返回页面时，应用仍只保留一个生效中的 NFC 操作会话，不会出现重复触发或重复执行。
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 2: 首页与导航重构
+**Goal**: 用户从首页和导航结构中就能理解产品的主任务、高风险操作和管理工具分别在哪，以及自己当前角色可用哪些入口。
+**Depends on**: Phase 1
+**Requirements**: SHELL-01, SHELL-02
+**Success Criteria** (what must be TRUE):
+  1. 用户打开首页后，无需逐页试探，就能区分主任务入口、高风险入口和管理入口。
+  2. 用户当前角色无权使用的首页入口不会误显示为可操作主入口。
+  3. 用户在首页或导航切换时，能快速判断某入口属于日常操作、风险操作还是辅助管理，不会因信息层级混乱走错路径。
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 3: 高频流程澄清
+**Goal**: 用户在读卡、写卡和格式化等高频流程中，能清楚理解每一步进展、结果差异和推荐下一步，而不是靠猜测继续操作。
+**Depends on**: Phase 2
+**Requirements**: FLOW-04, FLOW-05, RISK-04
+**Success Criteria** (what must be TRUE):
+  1. 用户完成写卡后，能清楚区分“写入成功”和“回读校验成功”是两个不同结果。
+  2. 用户在读卡、写卡或格式化成功、失败或未验证时，都能看到明确的下一步建议，而不是停留在模糊结果页。
+  3. 用户在格式化失败时，能看到失败是否发生、可能原因以及当前最安全的后续动作。
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 4: 高风险流程强化
+**Goal**: 用户在锁卡与解锁等高风险流程中，能先理解风险与前置条件，再进行受控确认，并准确分辨结果来源与恢复路径。
+**Depends on**: Phase 3
+**Requirements**: RISK-01, RISK-02, RISK-03, RISK-05, RISK-06, RISK-07, SUPP-03
+**Success Criteria** (what must be TRUE):
+  1. 用户在开始锁卡、解锁或相关高风险操作前，必须先看到风险摘要、所需确认条件和当前可执行前提。
+  2. 用户能看懂当前产品支持哪些锁卡方式、哪些不支持，以及当前锁定卡片在本场景下是否可解锁、是真实支持还是流程演示。
+  3. 用户在高风险流程处理中不能误触离开或重复触发同一操作。
+  4. 用户查看高风险结果时，能区分这是已确认执行、执行失败、结果未验证还是仅演示结果，并看到与失败原因相匹配的恢复建议。
+  5. 用户看到的敏感卡片信息与操作细节会按角色做适当遮罩或分级展示，不会对所有角色无差别暴露。
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 5: 辅助页统一收尾
+**Goal**: 用户在模板、日志和设置等辅助页面中，能用一致的视觉与信息结构理解页面内容，并判断这些数据或操作对安全、追责和本地便利性的影响。
+**Depends on**: Phase 4
+**Requirements**: SUPP-01, SUPP-02, SUPP-04
+**Success Criteria** (what must be TRUE):
+  1. 用户浏览模板、审计日志和设置页面时，能感受到一致的信息层级与视觉结构，不再像不同工具页面的拼装集合。
+  2. 用户查看任一审计记录时，能读出是谁在什么角色下、处于哪个阶段、以什么真实性状态执行了什么操作。
+  3. 用户能理解缓存结果、审计记录或设置动作分别影响安全性、可追责性还是仅影响本地使用便利，不会把普通清理操作误当成业务状态变更。
+**Plans**: TBD
+**UI hint**: yes
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. 基础治理与边界收口 | 0/TBD | Not started | - |
+| 2. 首页与导航重构 | 0/TBD | Not started | - |
+| 3. 高频流程澄清 | 0/TBD | Not started | - |
+| 4. 高风险流程强化 | 0/TBD | Not started | - |
+| 5. 辅助页统一收尾 | 0/TBD | Not started | - |

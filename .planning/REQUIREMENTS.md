@@ -70,36 +70,36 @@ Explicitly excluded from this roadmap.
 
 ## Traceability
 
-Which phases cover which requirements. To be filled during roadmap creation.
+Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SHELL-01 | Phase TBD | Pending |
-| SHELL-02 | Phase TBD | Pending |
-| SHELL-03 | Phase TBD | Pending |
-| SHELL-04 | Phase TBD | Pending |
-| SHELL-05 | Phase TBD | Pending |
-| FLOW-01 | Phase TBD | Pending |
-| FLOW-02 | Phase TBD | Pending |
-| FLOW-03 | Phase TBD | Pending |
-| FLOW-04 | Phase TBD | Pending |
-| FLOW-05 | Phase TBD | Pending |
-| RISK-01 | Phase TBD | Pending |
-| RISK-02 | Phase TBD | Pending |
-| RISK-03 | Phase TBD | Pending |
-| RISK-04 | Phase TBD | Pending |
-| RISK-05 | Phase TBD | Pending |
-| RISK-06 | Phase TBD | Pending |
-| RISK-07 | Phase TBD | Pending |
-| SUPP-01 | Phase TBD | Pending |
-| SUPP-02 | Phase TBD | Pending |
-| SUPP-03 | Phase TBD | Pending |
-| SUPP-04 | Phase TBD | Pending |
+| SHELL-01 | Phase 2 | Pending |
+| SHELL-02 | Phase 2 | Pending |
+| SHELL-03 | Phase 1 | Pending |
+| SHELL-04 | Phase 1 | Pending |
+| SHELL-05 | Phase 1 | Pending |
+| FLOW-01 | Phase 1 | Pending |
+| FLOW-02 | Phase 1 | Pending |
+| FLOW-03 | Phase 1 | Pending |
+| FLOW-04 | Phase 3 | Pending |
+| FLOW-05 | Phase 3 | Pending |
+| RISK-01 | Phase 4 | Pending |
+| RISK-02 | Phase 4 | Pending |
+| RISK-03 | Phase 4 | Pending |
+| RISK-04 | Phase 3 | Pending |
+| RISK-05 | Phase 4 | Pending |
+| RISK-06 | Phase 4 | Pending |
+| RISK-07 | Phase 4 | Pending |
+| SUPP-01 | Phase 5 | Pending |
+| SUPP-02 | Phase 5 | Pending |
+| SUPP-03 | Phase 4 | Pending |
+| SUPP-04 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 21 total
-- Mapped to phases: 0
-- Unmapped: 21 ⚠️
+- Mapped to phases: 21
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-31*
