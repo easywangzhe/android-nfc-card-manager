@@ -40,6 +40,8 @@ import com.opencode.nfccardmanager.core.nfc.model.CardInfo
 import com.opencode.nfccardmanager.core.nfc.model.LockCardResult
 import com.opencode.nfccardmanager.core.nfc.model.LockMode
 import com.opencode.nfccardmanager.core.nfc.model.TechType
+import com.opencode.nfccardmanager.core.nfc.model.presentation
+import com.opencode.nfccardmanager.core.nfc.model.toNfcFlowStage
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.DangerActionButton
 import com.opencode.nfccardmanager.ui.component.KeyValueRow
@@ -65,6 +67,7 @@ fun LockRiskScreen(
     val tagParser = remember { TagParser() }
     val scope = rememberCoroutineScope()
     var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
+    val stagePresentation = uiState.stage.toNfcFlowStage().presentation()
 
     DisposableEffect(sessionManager) {
         onDispose {
@@ -131,6 +134,8 @@ fun LockRiskScreen(
             AppCard(modifier = Modifier.fillMaxWidth()) {
                 SectionTitle("锁卡策略")
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    KeyValueRow("共享阶段", stagePresentation.title)
+                    KeyValueRow("会话占用", if (activeSession != null) "进行中" else "空闲")
                     KeyValueRow(
                         "推荐方式",
                         when (uiState.recommendedMode) {
@@ -139,6 +144,7 @@ fun LockRiskScreen(
                             else -> "待识别"
                         }
                     )
+                    Text(text = stagePresentation.detail, style = MaterialTheme.typography.bodyMedium)
                     Text(text = uiState.message, style = MaterialTheme.typography.bodyLarge)
                     Text(text = uiState.modeHint, style = MaterialTheme.typography.bodyMedium)
                 }

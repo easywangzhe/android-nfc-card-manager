@@ -38,6 +38,8 @@ import com.opencode.nfccardmanager.core.nfc.model.LockMode
 import com.opencode.nfccardmanager.core.nfc.model.TechType
 import com.opencode.nfccardmanager.core.nfc.model.UnlockCardRequest
 import com.opencode.nfccardmanager.core.nfc.model.UnlockCardResult
+import com.opencode.nfccardmanager.core.nfc.model.presentation
+import com.opencode.nfccardmanager.core.nfc.model.toNfcFlowStage
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.KeyValueRow
 import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
@@ -62,6 +64,7 @@ fun UnlockVerifyScreen(
     val executor = remember { UnlockExecutor() }
     val scope = rememberCoroutineScope()
     var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
+    val stagePresentation = uiState.stage.toNfcFlowStage().presentation()
 
     DisposableEffect(nfcManager) {
         onDispose {
@@ -125,7 +128,15 @@ fun UnlockVerifyScreen(
                 }
             }
 
-            Text(text = uiState.message, style = MaterialTheme.typography.titleMedium)
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                SectionTitle("当前状态")
+                Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    KeyValueRow("共享阶段", stagePresentation.title)
+                    KeyValueRow("会话占用", if (activeSession != null) "进行中" else "空闲")
+                    Text(text = stagePresentation.detail, style = MaterialTheme.typography.bodyMedium)
+                    Text(text = uiState.message, style = MaterialTheme.typography.titleMedium)
+                }
+            }
 
             uiState.capability?.let { capability ->
                 AppCard(modifier = Modifier.fillMaxWidth()) {

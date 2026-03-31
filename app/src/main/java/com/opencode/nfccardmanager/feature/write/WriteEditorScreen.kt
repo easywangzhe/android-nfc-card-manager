@@ -33,8 +33,10 @@ import com.opencode.nfccardmanager.core.nfc.NfcOperationType
 import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
 import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
 import com.opencode.nfccardmanager.core.nfc.TagParser
+import com.opencode.nfccardmanager.core.nfc.model.presentation
 import com.opencode.nfccardmanager.core.nfc.model.WriteCardRequest
 import com.opencode.nfccardmanager.core.nfc.model.WriteCardResult
+import com.opencode.nfccardmanager.core.nfc.model.toNfcFlowStage
 import com.opencode.nfccardmanager.core.nfc.model.toWriteStatusLabel
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.AppTopBar
@@ -64,6 +66,7 @@ fun WriteEditorScreen(
     val tagParser = remember { TagParser() }
     val scope = rememberCoroutineScope()
     var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
+    val stagePresentation = uiState.stage.toNfcFlowStage().presentation()
 
     DisposableEffect(nfcSessionManager) {
         onDispose {
@@ -141,6 +144,9 @@ fun WriteEditorScreen(
                                 WriteStage.ERROR -> "4 异常处理"
                             }
                         )
+                        KeyValueRow("共享阶段", stagePresentation.title)
+                        KeyValueRow("会话占用", if (activeSession != null) "进行中" else "空闲")
+                        Text(text = stagePresentation.detail, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }

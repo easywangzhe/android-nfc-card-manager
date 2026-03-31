@@ -29,6 +29,8 @@ import com.opencode.nfccardmanager.core.nfc.NdefFormatter
 import com.opencode.nfccardmanager.core.nfc.NfcOperationType
 import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
 import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
+import com.opencode.nfccardmanager.core.nfc.model.presentation
+import com.opencode.nfccardmanager.core.nfc.model.toNfcFlowStage
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.KeyValueRow
 import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
@@ -50,6 +52,7 @@ fun FormatCardScreen(
     val formatter = remember { NdefFormatter() }
     val scope = rememberCoroutineScope()
     var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
+    val stagePresentation = uiState.stage.toNfcFlowStage().presentation()
 
     DisposableEffect(nfcManager) {
         onDispose {
@@ -107,7 +110,12 @@ fun FormatCardScreen(
 
             AppCard(modifier = Modifier.fillMaxWidth()) {
                 SectionTitle("当前状态")
-                Text(uiState.message, modifier = Modifier.padding(top = 8.dp))
+                Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    KeyValueRow("共享阶段", stagePresentation.title)
+                    KeyValueRow("会话占用", if (activeSession != null) "进行中" else "空闲")
+                    Text(stagePresentation.detail)
+                    Text(uiState.message)
+                }
             }
 
             uiState.result?.let { result ->
