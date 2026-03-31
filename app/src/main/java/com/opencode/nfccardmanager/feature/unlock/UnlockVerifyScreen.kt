@@ -1,5 +1,6 @@
 package com.opencode.nfccardmanager.feature.unlock
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +35,7 @@ import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
 import com.opencode.nfccardmanager.core.nfc.TagParser
 import com.opencode.nfccardmanager.core.nfc.UnlockExecutor
 import com.opencode.nfccardmanager.core.nfc.model.CardInfo
+import com.opencode.nfccardmanager.core.nfc.model.HighRiskResultSource
 import com.opencode.nfccardmanager.core.nfc.model.LockMode
 import com.opencode.nfccardmanager.core.nfc.model.TechType
 import com.opencode.nfccardmanager.core.nfc.model.UnlockCardRequest
@@ -71,6 +73,9 @@ fun UnlockVerifyScreen(
     val stagePresentation = uiState.stage.toNfcFlowStage().presentation()
     val currentRole by SecurityManager.currentRole.collectAsStateWithLifecycle()
     val authenticityPresentation = ProtectedAction.UNLOCK.toCapabilityAuthenticity(uiState.capability).presentation()
+    val isProcessing = uiState.stage == UnlockStage.SCANNING
+
+    BackHandler(enabled = isProcessing) {}
 
     DisposableEffect(nfcManager) {
         onDispose {
@@ -105,12 +110,14 @@ fun UnlockVerifyScreen(
                 navigationIcon = {
                     TextButton(
                         onClick = {
+                            if (isProcessing) return@TextButton
                             nfcManager?.releaseReaderMode(activeSession)
                             activeSession = null
                             onBack()
                         }
+                        , enabled = !isProcessing
                     ) {
-                        Text("返回")
+                        Text(if (isProcessing) "处理中" else "返回")
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(),
@@ -128,21 +135,39 @@ fun UnlockVerifyScreen(
                 SectionTitle("解锁能力边界")
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatusPill("受控恢复操作", StatusTone.WARNING)
-                    Text(text = "1. 本页面仅对密码保护型锁定有实际意义")
-                    Text(text = "2. NDEF 永久只读锁定通常不可逆，不能通用解锁")
-                    Text(text = "3. 当前已完成密码保护型解锁流程骨架，真实底层认证命令仍待接入")
+                    Text(text = "1. 需先识别卡片边界，再判断是否可进入解锁流程。")
+                    Text(text = "2. NDEF 永久只读通常不可逆，不能通用解锁。")
+                    Text(text = "3. 当前密码保护型解锁仍是流程演示，未接入真实底层解除写保护命令。")
+                    if (isProcessing) {
+                        StatusPill(text = "处理中请勿离开或重复贴卡", tone = StatusTone.WARNING)
+                    }
                 }
             }
 
             AppCard(modifier = Modifier.fillMaxWidth()) {
-                SectionTitle("当前状态")
+                SectionTitle("当前状态与真实性")
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     KeyValueRow("共享阶段", stagePresentation.title)
                     KeyValueRow("会话占用", if (activeSession != null) "进行中" else "空闲")
                     StatusPill(text = authenticityPresentation.label, tone = authenticityPresentation.tone.toStatusTone())
+                    uiState.supportSummary?.let { summary ->
+                        Text(text = summary.title, style = MaterialTheme.typography.titleMedium)
+                        Text(text = "当前范围：${summary.supportedLabel}", style = MaterialTheme.typography.bodyMedium)
+                        Text(text = "不支持场景：${summary.unsupportedLabel}", style = MaterialTheme.typography.bodyMedium)
+                        Text(text = "结果来源边界：${summary.authenticityLabel}", style = MaterialTheme.typography.bodyMedium)
+                    }
                     Text(text = stagePresentation.detail, style = MaterialTheme.typography.bodyMedium)
                     Text(text = authenticityPresentation.detail, style = MaterialTheme.typography.bodyMedium)
                     Text(text = uiState.message, style = MaterialTheme.typography.titleMedium)
+                }
+            }
+
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                SectionTitle("必需前置条件")
+                Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    uiState.prerequisites.forEach { prerequisite ->
+                        KeyValueRow(prerequisite.label, if (prerequisite.satisfied) "已满足" else "未满足")
+                    }
                 }
             }
 
@@ -168,6 +193,7 @@ fun UnlockVerifyScreen(
                 label = { Text("解锁理由") },
                 placeholder = { Text("例如：标签信息需修正") },
                 minLines = 2,
+                enabled = !isProcessing,
             )
 
             OutlinedTextField(
@@ -178,6 +204,7 @@ fun UnlockVerifyScreen(
                 placeholder = { Text("演示密码 123456") },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
+                enabled = !isProcessing,
             )
 
             PrimaryActionButton(
@@ -190,6 +217,10 @@ fun UnlockVerifyScreen(
                     }
 
                     val session = nfcManager
+                    if (isProcessing) {
+                        return@PrimaryActionButton
+                    }
+
                     if (uiState.stage != UnlockStage.READY) {
                         viewModel.startUnlock()
                     } else if (session == null) {
@@ -234,6 +265,7 @@ fun UnlockVerifyScreen(
             SecondaryActionButton(
                 text = "模拟解锁成功（仅演示）",
                 onClick = {
+                    if (isProcessing) return@SecondaryActionButton
                     val permission = SecurityManager.ensureAccess(currentRole, ProtectedAction.UNLOCK)
                     if (permission.isFailure) {
                         viewModel.onError(permission.exceptionOrNull()?.message ?: "当前角色无权解锁")
@@ -253,17 +285,33 @@ fun UnlockVerifyScreen(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = activeSession == null,
+                enabled = activeSession == null && !isProcessing,
             )
 
             uiState.result?.let { result ->
                 AppCard(modifier = Modifier.fillMaxWidth()) {
                     SectionTitle(if (result.success) "解锁结果" else "解锁失败")
                     Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        uiState.resultGuidance?.let { guidance ->
+                            StatusPill(
+                                text = unlockResultSourceLabel(guidance.source),
+                                tone = when (guidance.source) {
+                                    HighRiskResultSource.DEMO_ONLY -> StatusTone.INFO
+                                    HighRiskResultSource.FAILED -> StatusTone.ERROR
+                                    HighRiskResultSource.UNVERIFIED -> StatusTone.WARNING
+                                    HighRiskResultSource.CONFIRMED_EXECUTED -> StatusTone.SUCCESS
+                                }
+                            )
+                            Text(text = "发生了什么：${guidance.conclusion}")
+                            Text(text = "当前最安全下一步：${guidance.recoveryAction}")
+                            Text(text = "建议动作：${guidance.ctaLabel}")
+                        }
                         Text(text = if (result.success) "解锁成功" else "解锁失败")
-                        KeyValueRow("UID", result.cardInfo.uid)
+                        uiState.maskedSensitiveFields.forEach { field ->
+                            KeyValueRow(field.label, field.value)
+                        }
                         KeyValueRow("卡类型", result.cardInfo.techType.name)
-                        Text(text = "结果：${result.message}")
+                        Text(text = "为什么：${result.message}")
                         Text(text = "校验说明：${result.verificationMessage}")
                         if (result.message.contains("仅演示") || result.verificationMessage.contains("演示模式")) {
                             StatusPill(text = "仅演示", tone = StatusTone.INFO)
@@ -272,5 +320,14 @@ fun UnlockVerifyScreen(
                 }
             }
         }
+    }
+}
+
+private fun unlockResultSourceLabel(source: HighRiskResultSource): String {
+    return when (source) {
+        HighRiskResultSource.CONFIRMED_EXECUTED -> "已确认执行"
+        HighRiskResultSource.FAILED -> "执行失败"
+        HighRiskResultSource.UNVERIFIED -> "结果未验证"
+        HighRiskResultSource.DEMO_ONLY -> "仅演示"
     }
 }
