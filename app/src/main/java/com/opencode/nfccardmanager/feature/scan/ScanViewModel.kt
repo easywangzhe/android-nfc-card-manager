@@ -2,11 +2,16 @@ package com.opencode.nfccardmanager.feature.scan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.opencode.nfccardmanager.core.database.AuditAuthenticity
+import com.opencode.nfccardmanager.core.database.AuditFlowStage
+import com.opencode.nfccardmanager.core.database.AuditImpactScope
 import com.opencode.nfccardmanager.core.database.AuditLogManager
+import com.opencode.nfccardmanager.feature.audit.mapUserRoleToAuditRole
 import com.opencode.nfccardmanager.core.nfc.CardCapabilityResolver
 import com.opencode.nfccardmanager.core.nfc.model.CardInfo
 import com.opencode.nfccardmanager.core.nfc.model.ReadCardResult
 import com.opencode.nfccardmanager.core.nfc.model.TechType
+import com.opencode.nfccardmanager.core.security.SecurityManager
 import com.opencode.nfccardmanager.feature.read.ReadResultStore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -94,6 +99,11 @@ class ScanViewModel(
                 cardType = cardInfo.techType.name,
                 result = "SUCCESS",
                 message = "读卡成功，识别到 ${result.records.size} 条 NDEF 记录",
+                operatorId = SecurityManager.currentSession.value?.username ?: "system",
+                operatorRole = mapUserRoleToAuditRole(SecurityManager.currentRole.value.name),
+                flowStage = AuditFlowStage.COMPLETED,
+                authenticity = AuditAuthenticity.VERIFIED,
+                impactScope = AuditImpactScope.TRACEABILITY,
             )
             ReadResultStore.save(result)
             _uiEffect.emit(ScanUiEffect.NavigateToReadResult(result))

@@ -19,11 +19,12 @@ enum class AuditResultFilter {
 
 data class AuditLogUiState(
     val logs: List<AuditLogRecord> = emptyList(),
-    val filteredLogs: List<AuditLogRecord> = emptyList(),
+    val filteredLogs: List<AuditLogListItemPresentation> = emptyList(),
     val isLoading: Boolean = false,
     val operationFilter: String = "ALL",
     val resultFilter: AuditResultFilter = AuditResultFilter.ALL,
     val keyword: String = "",
+    val pageSummary: com.opencode.nfccardmanager.feature.support.SupportPageSummary = buildAuditOverviewSummary(),
 )
 
 class AuditLogViewModel : ViewModel() {
@@ -34,10 +35,14 @@ class AuditLogViewModel : ViewModel() {
         _uiState.update { it.copy(isLoading = true) }
         viewModelScope.launch(Dispatchers.IO) {
             val logs = AuditLogManager.list()
-            _uiState.update {
-                val next = it.copy(logs = logs, isLoading = false)
-                next.copy(filteredLogs = applyFilters(next))
-            }
+            updateLogsForTest(logs, isLoading = false)
+        }
+    }
+
+    internal fun updateLogsForTest(logs: List<AuditLogRecord>, isLoading: Boolean = false) {
+        _uiState.update {
+            val next = it.copy(logs = logs, isLoading = isLoading)
+            next.copy(filteredLogs = applyFilters(next))
         }
     }
 
@@ -73,7 +78,7 @@ class AuditLogViewModel : ViewModel() {
         }
     }
 
-    private fun applyFilters(state: AuditLogUiState): List<AuditLogRecord> {
+    private fun applyFilters(state: AuditLogUiState): List<AuditLogListItemPresentation> {
         return state.logs.filter { log ->
             val matchesOperation = state.operationFilter == "ALL" || log.operationType == state.operationFilter
             val matchesResult = when (state.resultFilter) {
@@ -85,13 +90,17 @@ class AuditLogViewModel : ViewModel() {
             val matchesKeyword = keyword.isBlank() || listOf(
                 log.operationType,
                 log.operatorId,
+                log.operatorRole.label,
                 log.cardUidMasked,
                 log.cardType,
                 log.result,
+                log.flowStage.label,
+                log.authenticity.label,
+                log.impactScope.label,
                 log.message,
             ).any { it.contains(keyword, ignoreCase = true) }
 
             matchesOperation && matchesResult && matchesKeyword
-        }
+        }.map(::buildAuditLogListItem)
     }
 }

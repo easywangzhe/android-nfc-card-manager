@@ -1,6 +1,8 @@
 package com.opencode.nfccardmanager.feature.lock
 
 import androidx.lifecycle.ViewModel
+import com.opencode.nfccardmanager.core.database.AuditFlowStage
+import com.opencode.nfccardmanager.core.database.AuditImpactScope
 import com.opencode.nfccardmanager.core.database.AuditLogManager
 import com.opencode.nfccardmanager.core.nfc.model.CardCapability
 import com.opencode.nfccardmanager.core.nfc.model.HighRiskSupportSummary
@@ -11,6 +13,8 @@ import com.opencode.nfccardmanager.core.nfc.model.buildLockResultGuidance
 import com.opencode.nfccardmanager.core.nfc.model.buildLockSupportSummary
 import com.opencode.nfccardmanager.core.security.SecurityManager
 import com.opencode.nfccardmanager.core.security.maskRiskSensitiveValue
+import com.opencode.nfccardmanager.feature.audit.lockAuthenticity
+import com.opencode.nfccardmanager.feature.audit.mapUserRoleToAuditRole
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -74,6 +78,11 @@ class LockViewModel : ViewModel() {
             cardType = result.cardInfo.techType.name,
             result = if (result.success) "SUCCESS" else "FAILED",
             message = "${result.message}；${result.verificationMessage}",
+            operatorId = SecurityManager.currentSession.value?.username ?: "system",
+            operatorRole = mapUserRoleToAuditRole(SecurityManager.currentRole.value.name),
+            flowStage = if (result.success) AuditFlowStage.COMPLETED else AuditFlowStage.FAILED,
+            authenticity = lockAuthenticity(result.success, result.verified),
+            impactScope = AuditImpactScope.TRACEABILITY,
         )
         _uiState.update {
             it.copy(
@@ -103,6 +112,11 @@ class LockViewModel : ViewModel() {
             cardType = "UNKNOWN",
             result = "FAILED",
             message = message,
+            operatorId = SecurityManager.currentSession.value?.username ?: "system",
+            operatorRole = mapUserRoleToAuditRole(SecurityManager.currentRole.value.name),
+            flowStage = AuditFlowStage.FAILED,
+            authenticity = com.opencode.nfccardmanager.core.database.AuditAuthenticity.PENDING,
+            impactScope = AuditImpactScope.TRACEABILITY,
         )
         _uiState.update {
             it.copy(stage = LockStage.ERROR, message = message, resultGuidance = null)

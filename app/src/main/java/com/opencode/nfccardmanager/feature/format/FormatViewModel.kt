@@ -1,9 +1,14 @@
 package com.opencode.nfccardmanager.feature.format
 
 import androidx.lifecycle.ViewModel
+import com.opencode.nfccardmanager.core.database.AuditFlowStage
+import com.opencode.nfccardmanager.core.database.AuditImpactScope
 import com.opencode.nfccardmanager.core.database.AuditLogManager
 import com.opencode.nfccardmanager.core.nfc.model.FormatCardResult
 import com.opencode.nfccardmanager.core.nfc.model.buildFormatNextStepGuidance
+import com.opencode.nfccardmanager.core.security.SecurityManager
+import com.opencode.nfccardmanager.feature.audit.formatAuthenticity
+import com.opencode.nfccardmanager.feature.audit.mapUserRoleToAuditRole
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +37,11 @@ class FormatViewModel : ViewModel() {
             cardType = result.cardInfo.techType.name,
             result = if (result.success) "SUCCESS" else "FAILED",
             message = "${result.message}；${result.reason}",
+            operatorId = SecurityManager.currentSession.value?.username ?: "system",
+            operatorRole = mapUserRoleToAuditRole(SecurityManager.currentRole.value.name),
+            flowStage = if (result.success) AuditFlowStage.COMPLETED else AuditFlowStage.FAILED,
+            authenticity = formatAuthenticity(result.success),
+            impactScope = AuditImpactScope.TRACEABILITY,
         )
         _uiState.update {
             it.copy(
@@ -50,6 +60,11 @@ class FormatViewModel : ViewModel() {
             cardType = "UNKNOWN",
             result = "FAILED",
             message = message,
+            operatorId = SecurityManager.currentSession.value?.username ?: "system",
+            operatorRole = mapUserRoleToAuditRole(SecurityManager.currentRole.value.name),
+            flowStage = AuditFlowStage.FAILED,
+            authenticity = com.opencode.nfccardmanager.core.database.AuditAuthenticity.PENDING,
+            impactScope = AuditImpactScope.TRACEABILITY,
         )
         _uiState.update {
             it.copy(

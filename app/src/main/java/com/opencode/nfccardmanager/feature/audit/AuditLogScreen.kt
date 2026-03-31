@@ -26,12 +26,11 @@ import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.AppTopBar
 import com.opencode.nfccardmanager.ui.component.KeyValueRow
 import com.opencode.nfccardmanager.ui.component.SectionTitle
+import com.opencode.nfccardmanager.ui.component.SupportImpactBadge
+import com.opencode.nfccardmanager.ui.component.SupportPageSummaryCard
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
 import com.opencode.nfccardmanager.ui.component.appPagePadding
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,11 +55,19 @@ fun AuditLogScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
+                SupportPageSummaryCard(summary = uiState.pageSummary)
+            }
+
+            item {
                 AppCard(modifier = Modifier.fillMaxWidth()) {
-                    SectionTitle("日志总览")
+                    SectionTitle("追责概览")
                     Text(
                         text = if (uiState.isLoading) "日志加载中..." else "共 ${uiState.filteredLogs.size} / ${uiState.logs.size} 条本地审计日志",
                         style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    Text(
+                        text = "日志仅用于说明是谁在什么边界下执行了什么操作，不会直接改变卡片当前状态。",
                         modifier = Modifier.padding(top = 8.dp),
                     )
                 }
@@ -145,21 +152,21 @@ fun AuditLogScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             StatusPill(
                                 text = log.result,
-                                tone = if (log.result == "SUCCESS") StatusTone.SUCCESS else StatusTone.ERROR,
+                                tone = log.resultTone,
                             )
                             KeyValueRow("操作", log.operationType)
-                            KeyValueRow("卡片", "${log.cardUidMasked} / ${log.cardType}")
-                            KeyValueRow("操作者", log.operatorId)
+                            KeyValueRow("操作者", log.operatorSummary)
+                            KeyValueRow("角色", log.roleLabel)
+                            KeyValueRow("阶段", log.stageLabel)
+                            KeyValueRow("真实性", log.authenticityLabel)
+                            SupportImpactBadge(impact = com.opencode.nfccardmanager.feature.support.SupportImpact.TRACEABILITY)
+                            Text(text = "卡片：${log.cardSummary}")
                             Text(text = "说明：${log.message}")
-                            Text(text = "时间：${log.createdAt.toDisplayTime()}")
+                            Text(text = "时间：${log.timestampLabel}")
                         }
                     }
                 }
             }
         }
     }
-}
-
-internal fun Long.toDisplayTime(): String {
-    return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(this))
 }

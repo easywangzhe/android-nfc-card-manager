@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 
 data class AuditLogDetailUiState(
     val log: AuditLogRecord? = null,
+    val presentation: AuditLogDetailPresentation? = null,
     val isLoading: Boolean = false,
 )
 
@@ -25,7 +26,11 @@ class AuditLogDetailViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             val log = AuditLogManager.findById(logId)
             _uiState.update {
-                it.copy(log = log, isLoading = false)
+                it.copy(
+                    log = log,
+                    presentation = log?.let(::buildAuditLogDetailPresentation),
+                    isLoading = false,
+                )
             }
         }
     }
