@@ -2,8 +2,12 @@ package com.opencode.nfccardmanager.feature.unlock
 
 import androidx.lifecycle.ViewModel
 import com.opencode.nfccardmanager.core.database.AuditLogManager
+import com.opencode.nfccardmanager.core.nfc.model.buildUnlockResultGuidance
+import com.opencode.nfccardmanager.core.nfc.model.buildUnlockSupportSummary
 import com.opencode.nfccardmanager.core.nfc.model.ReadCardResult
 import com.opencode.nfccardmanager.core.nfc.model.UnlockCardResult
+import com.opencode.nfccardmanager.core.security.SecurityManager
+import com.opencode.nfccardmanager.core.security.maskRiskSensitiveValue
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +22,14 @@ class UnlockViewModel : ViewModel() {
             it.copy(
                 reason = value,
                 stage = if (canStart(value, it.credential)) UnlockStage.READY else UnlockStage.IDLE,
+                message = if (canStart(value, it.credential)) {
+                    "前置条件已满足，可开始识别并验证解锁边界。"
+                } else {
+                    "前置条件未满足，暂不能开始解锁。"
+                },
                 result = null,
+                resultGuidance = null,
+                prerequisites = buildPrerequisites(value, it.credential),
             )
         }
     }
@@ -28,7 +39,14 @@ class UnlockViewModel : ViewModel() {
             it.copy(
                 credential = value,
                 stage = if (canStart(it.reason, value)) UnlockStage.READY else UnlockStage.IDLE,
+                message = if (canStart(it.reason, value)) {
+                    "前置条件已满足，可开始识别并验证解锁边界。"
+                } else {
+                    "前置条件未满足，暂不能开始解锁。"
+                },
                 result = null,
+                resultGuidance = null,
+                prerequisites = buildPrerequisites(it.reason, value),
             )
         }
     }
@@ -44,15 +62,18 @@ class UnlockViewModel : ViewModel() {
                 stage = UnlockStage.SCANNING,
                 message = "请将待解锁卡片贴近手机背部，系统将先识别卡型和解锁能力",
                 result = null,
+                resultGuidance = null,
             )
         }
     }
 
     fun onTagResolved(readResult: ReadCardResult) {
+        val supportSummary = buildUnlockSupportSummary(readResult.capability)
         _uiState.update {
             it.copy(
                 cardInfo = readResult.cardInfo,
                 capability = readResult.capability,
+                supportSummary = supportSummary,
                 message = when {
                     readResult.capability.lockMode == com.opencode.nfccardmanager.core.nfc.model.LockMode.PASSWORD_PROTECTED -> {
                         "已识别 ${readResult.cardInfo.techType.name}，该卡支持密码保护型解锁流程。"
@@ -64,6 +85,7 @@ class UnlockViewModel : ViewModel() {
                         "已识别 ${readResult.cardInfo.techType.name}，当前卡片不支持解锁。"
                     }
                 },
+                maskedSensitiveFields = buildMaskedFields(readResult.cardInfo.uid, it.credential),
             )
         }
     }
@@ -81,6 +103,8 @@ class UnlockViewModel : ViewModel() {
                 stage = if (result.success) UnlockStage.SUCCESS else UnlockStage.ERROR,
                 message = result.message,
                 result = result,
+                resultGuidance = buildUnlockResultGuidance(result),
+                maskedSensitiveFields = buildMaskedFields(result.cardInfo.uid, it.credential),
             )
         }
     }
@@ -94,11 +118,26 @@ class UnlockViewModel : ViewModel() {
             message = message,
         )
         _uiState.update {
-            it.copy(stage = UnlockStage.ERROR, message = message)
+            it.copy(stage = UnlockStage.ERROR, message = message, resultGuidance = null)
         }
     }
 
     private fun canStart(reason: String, credential: String): Boolean {
         return reason.isNotBlank() && credential.isNotBlank()
+    }
+
+    private fun buildPrerequisites(reason: String, credential: String): List<UnlockPrerequisite> {
+        return listOf(
+            UnlockPrerequisite(label = "已填写解锁理由", satisfied = reason.isNotBlank()),
+            UnlockPrerequisite(label = "已填写解锁凭据", satisfied = credential.isNotBlank()),
+        )
+    }
+
+    private fun buildMaskedFields(uid: String, credential: String): List<UnlockMaskedField> {
+        val role = SecurityManager.currentRole.value
+        return listOf(
+            UnlockMaskedField(label = "UID", value = maskRiskSensitiveValue(uid, role)),
+            UnlockMaskedField(label = "凭据摘要", value = maskRiskSensitiveValue(credential, role)),
+        )
     }
 }
