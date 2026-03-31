@@ -31,6 +31,8 @@ import com.opencode.nfccardmanager.core.nfc.model.NfcFlowTone
 import com.opencode.nfccardmanager.feature.home.HomeEntry
 import com.opencode.nfccardmanager.feature.home.HomeEntryRiskLevel
 import com.opencode.nfccardmanager.feature.home.HomeSection
+import com.opencode.nfccardmanager.feature.support.SupportImpact
+import com.opencode.nfccardmanager.feature.support.SupportPageSummary
 import com.opencode.nfccardmanager.ui.theme.BlueInfoBg
 import com.opencode.nfccardmanager.ui.theme.BluePrimary
 import com.opencode.nfccardmanager.ui.theme.GrayBorder
@@ -130,6 +132,44 @@ fun StatusPill(text: String, tone: StatusTone) {
 @Composable
 fun SectionTitle(text: String) {
     Text(text = text, style = MaterialTheme.typography.titleLarge, color = TextPrimary)
+}
+
+@Composable
+fun SupportImpactBadge(
+    impact: SupportImpact,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier) {
+        StatusPill(text = impact.label, tone = impact.tone)
+    }
+}
+
+@Composable
+fun SupportPageSummaryCard(
+    summary: SupportPageSummary,
+    modifier: Modifier = Modifier,
+) {
+    AppCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            SectionTitle(summary.title)
+            Text(
+                text = summary.summary,
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary,
+            )
+            SupportImpactBadge(impact = summary.impact)
+            if (summary.sections.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    summary.sections.forEach { section ->
+                        StatusPill(
+                            text = section.title,
+                            tone = StatusTone.INFO,
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
