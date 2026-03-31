@@ -1,5 +1,6 @@
 package com.opencode.nfccardmanager.feature.lock
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,6 +38,7 @@ import com.opencode.nfccardmanager.core.nfc.PasswordProtectedLocker
 import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
 import com.opencode.nfccardmanager.core.nfc.TagParser
 import com.opencode.nfccardmanager.core.nfc.model.CardInfo
+import com.opencode.nfccardmanager.core.nfc.model.HighRiskResultSource
 import com.opencode.nfccardmanager.core.nfc.model.LockCardResult
 import com.opencode.nfccardmanager.core.nfc.model.LockMode
 import com.opencode.nfccardmanager.core.nfc.model.TechType
@@ -74,6 +76,9 @@ fun LockRiskScreen(
     val stagePresentation = uiState.stage.toNfcFlowStage().presentation()
     val currentRole by SecurityManager.currentRole.collectAsStateWithLifecycle()
     val authenticityPresentation = ProtectedAction.LOCK.toCapabilityAuthenticity().presentation()
+    val isProcessing = uiState.stage == LockStage.LOCKING
+
+    BackHandler(enabled = isProcessing) {}
 
     DisposableEffect(sessionManager) {
         onDispose {
@@ -108,12 +113,14 @@ fun LockRiskScreen(
                 navigationIcon = {
                     TextButton(
                         onClick = {
+                            if (isProcessing) return@TextButton
                             sessionManager?.releaseReaderMode(activeSession)
                             activeSession = null
                             onBack()
                         }
+                        , enabled = !isProcessing
                     ) {
-                        Text("返回")
+                        Text(if (isProcessing) "处理中" else "返回")
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(),
@@ -128,21 +135,30 @@ fun LockRiskScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             AppCard(modifier = Modifier.fillMaxWidth()) {
-                SectionTitle("高风险提示")
-                Column(modifier = Modifier.padding(top = 8.dp)) {
+                SectionTitle("风险摘要")
+                Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatusPill("高风险操作", StatusTone.ERROR)
-                    Text(text = "1. 系统会先识别卡片能力，优先采用密码保护方案")
-                    Text(text = "2. 若卡片不支持密码保护，则降级为永久只读")
-                    Text(text = "3. 永久只读通常不可解锁，请确认风险")
+                    Text(text = "1. 系统会先识别卡片能力，再决定是否可执行锁卡。")
+                    Text(text = "2. 支持密码保护时优先走可控方案；否则可能降级为永久只读。")
+                    Text(text = "3. 永久只读通常不可逆，请在开始前确认恢复路径与责任归属。")
+                    if (isProcessing) {
+                        StatusPill(text = "处理中请勿离开或移开卡片", tone = StatusTone.WARNING)
+                    }
                 }
             }
 
             AppCard(modifier = Modifier.fillMaxWidth()) {
-                SectionTitle("锁卡策略")
+                SectionTitle("当前支持方式与真实性")
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     KeyValueRow("共享阶段", stagePresentation.title)
                     KeyValueRow("会话占用", if (activeSession != null) "进行中" else "空闲")
                     StatusPill(text = authenticityPresentation.label, tone = authenticityPresentation.tone.toStatusTone())
+                    uiState.supportSummary?.let { summary ->
+                        Text(text = summary.title, style = MaterialTheme.typography.titleMedium)
+                        Text(text = "支持：${summary.supportedLabel}", style = MaterialTheme.typography.bodyMedium)
+                        Text(text = "不支持：${summary.unsupportedLabel}", style = MaterialTheme.typography.bodyMedium)
+                        Text(text = "结果来源边界：${summary.authenticityLabel}", style = MaterialTheme.typography.bodyMedium)
+                    }
                     KeyValueRow(
                         "推荐方式",
                         when (uiState.recommendedMode) {
@@ -159,11 +175,15 @@ fun LockRiskScreen(
             }
 
             AppCard(modifier = Modifier.fillMaxWidth()) {
-                SectionTitle("风险确认")
-                Column(modifier = Modifier.padding(top = 8.dp)) {
+                SectionTitle("必需确认条件")
+                Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    uiState.prerequisites.forEach { prerequisite ->
+                        KeyValueRow(prerequisite.label, if (prerequisite.satisfied) "已满足" else "未满足")
+                    }
                     Checkbox(
                         checked = uiState.riskAcknowledged,
                         onCheckedChange = viewModel::toggleRiskAcknowledged,
+                        enabled = !isProcessing,
                     )
                     Text(text = "我已知晓该操作通常不可逆，并愿意继续")
                 }
@@ -176,6 +196,7 @@ fun LockRiskScreen(
                 label = { Text("请输入确认词 LOCK") },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                 singleLine = true,
+                enabled = !isProcessing,
             )
 
             DangerActionButton(
@@ -188,6 +209,10 @@ fun LockRiskScreen(
                     }
 
                     val nfcManager = sessionManager
+                    if (isProcessing) {
+                        return@DangerActionButton
+                    }
+
                     if (uiState.stage != LockStage.READY) {
                         viewModel.startLocking()
                     } else if (nfcManager == null) {
@@ -237,6 +262,7 @@ fun LockRiskScreen(
             SecondaryActionButton(
                 text = "模拟锁卡成功（仅演示）",
                 onClick = {
+                    if (isProcessing) return@SecondaryActionButton
                     val permission = SecurityManager.ensureAccess(currentRole, ProtectedAction.LOCK)
                     if (permission.isFailure) {
                         viewModel.onError(permission.exceptionOrNull()?.message ?: "当前角色无权锁卡")
@@ -259,20 +285,36 @@ fun LockRiskScreen(
                     )
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = activeSession == null,
+                enabled = activeSession == null && !isProcessing,
             )
 
             uiState.result?.let { result ->
                 AppCard(modifier = Modifier.fillMaxWidth()) {
                     SectionTitle(if (result.success) "锁卡结果" else "锁卡失败")
                     Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        uiState.resultGuidance?.let { guidance ->
+                            StatusPill(
+                                text = lockResultSourceLabel(guidance.source),
+                                tone = when (guidance.source) {
+                                    HighRiskResultSource.CONFIRMED_EXECUTED -> StatusTone.SUCCESS
+                                    HighRiskResultSource.UNVERIFIED -> StatusTone.WARNING
+                                    HighRiskResultSource.FAILED -> StatusTone.ERROR
+                                    HighRiskResultSource.DEMO_ONLY -> StatusTone.INFO
+                                }
+                            )
+                            Text(text = "发生了什么：${guidance.conclusion}")
+                            Text(text = "当前最安全下一步：${guidance.recoveryAction}")
+                            Text(text = "建议动作：${guidance.ctaLabel}")
+                        }
                         Text(text = if (result.success) "锁卡成功" else "锁卡失败")
-                        KeyValueRow("UID", result.cardInfo.uid)
+                        uiState.maskedSensitiveFields.forEach { field ->
+                            KeyValueRow(field.label, field.value)
+                        }
                         KeyValueRow("卡类型", result.cardInfo.techType.name)
                         KeyValueRow("锁定方式", when (result.lockMode) { LockMode.PASSWORD_PROTECTED -> "密码保护"; LockMode.READ_ONLY_PERMANENT -> "永久只读"; else -> "不支持" })
-                        Text(text = "结果：${result.message}")
+                        Text(text = "为什么：${result.message}")
                         KeyValueRow("不可逆", if (result.irreversible) "是" else "否")
-                        KeyValueRow("只读校验", if (result.verified) "通过" else "失败")
+                        KeyValueRow("结果校验", if (result.verified) "已确认执行" else "结果未验证")
                         Text(text = "校验说明：${result.verificationMessage}")
                         if (result.message.contains("仅演示") || result.verificationMessage.contains("演示模式")) {
                             StatusPill(text = "仅演示", tone = StatusTone.INFO)
@@ -281,5 +323,14 @@ fun LockRiskScreen(
                 }
             }
         }
+    }
+}
+
+private fun lockResultSourceLabel(source: HighRiskResultSource): String {
+    return when (source) {
+        HighRiskResultSource.CONFIRMED_EXECUTED -> "已确认执行"
+        HighRiskResultSource.FAILED -> "执行失败"
+        HighRiskResultSource.UNVERIFIED -> "结果未验证"
+        HighRiskResultSource.DEMO_ONLY -> "仅演示"
     }
 }
