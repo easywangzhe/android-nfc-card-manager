@@ -1,6 +1,8 @@
 package com.opencode.nfccardmanager.feature.write
 
+import com.opencode.nfccardmanager.core.nfc.model.FlowNextStepGuidance
 import com.opencode.nfccardmanager.core.nfc.model.WriteCardResult
+import com.opencode.nfccardmanager.core.nfc.model.WriteOutcomeGuidance
 import com.opencode.nfccardmanager.feature.template.WriteTemplate
 
 enum class WriteStage {
@@ -29,4 +31,6 @@ data class WriteUiState(
     val stage: WriteStage = WriteStage.IDLE,
     val message: String = "请输入待写入的文本内容，确认后点击开始写卡。",
     val result: WriteCardResult? = null,
+    val resultGuidance: WriteOutcomeGuidance? = null,
+    val nextStepGuidance: FlowNextStepGuidance? = null,
 )
