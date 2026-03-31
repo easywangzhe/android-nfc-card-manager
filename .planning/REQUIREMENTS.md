@@ -35,10 +35,10 @@ Requirements for this brownfield optimization round. Each requirement will map t
 
 ### Support Pages & Audit
 
-- [ ] **SUPP-01**: User can scan template, audit, and settings pages with a consistent information hierarchy and visual structure.
-- [ ] **SUPP-02**: User can read audit logs with enough context to understand who performed the action, under which role, in what stage, and with what authenticity status.
+- [x] **SUPP-01**: User can scan template, audit, and settings pages with a consistent information hierarchy and visual structure.
+- [x] **SUPP-02**: User can read audit logs with enough context to understand who performed the action, under which role, in what stage, and with what authenticity status.
 - [x] **SUPP-03**: User sees sensitive card or operation details with role-appropriate masking or graded disclosure.
-- [ ] **SUPP-04**: User can understand whether a cached result, audit record, or settings action affects safety, traceability, or only local convenience.
+- [x] **SUPP-04**: User can understand whether a cached result, audit record, or settings action affects safety, traceability, or only local convenience.
 
 ## v2 Requirements
 
@@ -91,10 +91,10 @@ Which phases cover which requirements.
 | RISK-05 | Phase 4 | Complete |
 | RISK-06 | Phase 4 | Complete |
 | RISK-07 | Phase 4 | Complete |
-| SUPP-01 | Phase 5 | Pending |
-| SUPP-02 | Phase 5 | Pending |
+| SUPP-01 | Phase 5 | Complete |
+| SUPP-02 | Phase 5 | Complete |
 | SUPP-03 | Phase 4 | Complete |
-| SUPP-04 | Phase 5 | Pending |
+| SUPP-04 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 21 total
