@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning-complete
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-03-31T09:55:00.000Z"
+status: executing
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-03-31T09:17:59.637Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 8
-  completed_plans: 8
+  completed_plans: 11
   percent: 60
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 4 of 5 (高风险流程强化)
-Plan: 0 of TBD in current phase
-Status: Planned, ready to execute
+Plan: 3 of 3 in current phase
+Status: Ready to execute
 Last activity: 2026-03-31
 
 Progress: [██████░░░░] 60%
@@ -61,6 +61,9 @@ Progress: [██████░░░░] 60%
 | Phase 03 P01 | 8m | 2 tasks | 2 files |
 | Phase 03 P02 | 14m | 3 tasks | 6 files |
 | Phase 03 P03 | 12m | 3 tasks | 5 files |
+| Phase 04 P01 | 6m | 2 tasks | 3 files |
+| Phase 04 P02 | 8m | 3 tasks | 4 files |
+| Phase 04 P03 | 8m | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -85,10 +88,14 @@ Recent decisions affecting current work:
 - [Phase 03]: 高频流程结果页统一消费纯 Kotlin guidance 契约，避免各页面散写 status 判断。
 - [Phase 03]: 写卡结果必须拆分为写入执行结果与回读校验结果，VERIFY_FAILED 不能降级成普通写入失败。
 - [Phase 03]: 格式化与读卡结果页统一采用 发生了什么 / 为什么 / 当前最安全下一步 的结果表达。
+- [Phase 04]: 锁卡与解锁统一消费 HighRiskFlowGuidance，页面不再自行拼接支持真假与恢复建议。
+- [Phase 04]: 高风险敏感值统一按角色分级遮罩：管理员全量、主管半遮罩、操作员与审计员强遮罩。
+- [Phase 04]: 锁卡处理中统一禁用返回与重复触发，结果区按已确认执行、未验证、失败三类来源表达。
+- [Phase 04]: 解锁成功态继续标记为 demo-only，不能把流程骨架 success 渲染成真实解锁成功。
 
 ### Pending Todos
 
-- Phase 4: 开始高风险流程强化规划与执行
+- Phase 4: 按 04-01 → 04-02/04-03 波次执行高风险流程强化计划
 
 ### Blockers/Concerns
 
@@ -97,6 +104,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-31T09:55:00.000Z
-Stopped at: Completed 03-03-PLAN.md
+Last session: 2026-03-31T09:17:59.635Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None

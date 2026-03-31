@@ -25,19 +25,19 @@ Requirements for this brownfield optimization round. Each requirement will map t
 
 ### High-Risk Operations
 
-- [ ] **RISK-01**: User sees a risk summary and required confirmations before lock, unlock, or format can start.
-- [ ] **RISK-02**: User can see which lock methods are supported by the current product and which are not supported.
-- [ ] **RISK-03**: User can see whether a locked card can be unlocked in the current scenario, and whether that outcome is real support or only process demonstration.
+- [x] **RISK-01**: User sees a risk summary and required confirmations before lock, unlock, or format can start.
+- [x] **RISK-02**: User can see which lock methods are supported by the current product and which are not supported.
+- [x] **RISK-03**: User can see whether a locked card can be unlocked in the current scenario, and whether that outcome is real support or only process demonstration.
 - [x] **RISK-04**: User can see whether a format failure happened, the likely reason, and the safest next step.
-- [ ] **RISK-05**: User cannot accidentally leave or re-trigger a high-risk operation while processing is in progress.
-- [ ] **RISK-06**: User can distinguish operation result source, including confirmed execution, failed execution, unverified result, or demo-only result.
-- [ ] **RISK-07**: User receives failure recovery guidance for high-risk operations based on the actual failure condition.
+- [x] **RISK-05**: User cannot accidentally leave or re-trigger a high-risk operation while processing is in progress.
+- [x] **RISK-06**: User can distinguish operation result source, including confirmed execution, failed execution, unverified result, or demo-only result.
+- [x] **RISK-07**: User receives failure recovery guidance for high-risk operations based on the actual failure condition.
 
 ### Support Pages & Audit
 
 - [ ] **SUPP-01**: User can scan template, audit, and settings pages with a consistent information hierarchy and visual structure.
 - [ ] **SUPP-02**: User can read audit logs with enough context to understand who performed the action, under which role, in what stage, and with what authenticity status.
-- [ ] **SUPP-03**: User sees sensitive card or operation details with role-appropriate masking or graded disclosure.
+- [x] **SUPP-03**: User sees sensitive card or operation details with role-appropriate masking or graded disclosure.
 - [ ] **SUPP-04**: User can understand whether a cached result, audit record, or settings action affects safety, traceability, or only local convenience.
 
 ## v2 Requirements
@@ -84,16 +84,16 @@ Which phases cover which requirements.
 | FLOW-03 | Phase 1 | Complete |
 | FLOW-04 | Phase 3 | Complete |
 | FLOW-05 | Phase 3 | Complete |
-| RISK-01 | Phase 4 | Pending |
-| RISK-02 | Phase 4 | Pending |
-| RISK-03 | Phase 4 | Pending |
+| RISK-01 | Phase 4 | Complete |
+| RISK-02 | Phase 4 | Complete |
+| RISK-03 | Phase 4 | Complete |
 | RISK-04 | Phase 3 | Complete |
-| RISK-05 | Phase 4 | Pending |
-| RISK-06 | Phase 4 | Pending |
-| RISK-07 | Phase 4 | Pending |
+| RISK-05 | Phase 4 | Complete |
+| RISK-06 | Phase 4 | Complete |
+| RISK-07 | Phase 4 | Complete |
 | SUPP-01 | Phase 5 | Pending |
 | SUPP-02 | Phase 5 | Pending |
-| SUPP-03 | Phase 4 | Pending |
+| SUPP-03 | Phase 4 | Complete |
 | SUPP-04 | Phase 5 | Pending |
 
 **Coverage:**
