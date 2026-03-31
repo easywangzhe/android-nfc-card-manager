@@ -13,13 +13,13 @@ Requirements for this brownfield optimization round. Each requirement will map t
 - [ ] **SHELL-02**: User only sees home entry points that match their current role permissions.
 - [ ] **SHELL-03**: User cannot reach restricted pages through navigation or direct route access when their role lacks permission.
 - [ ] **SHELL-04**: User cannot execute restricted NFC operations even if they somehow enter a page without the required role.
-- [ ] **SHELL-05**: User can clearly tell when a capability is fully supported, unverified, demo-only, or not implemented.
+- [x] **SHELL-05**: User can clearly tell when a capability is fully supported, unverified, demo-only, or not implemented.
 
 ### Flow Safety
 
 - [ ] **FLOW-01**: User must explicitly start NFC scanning before a read, write, format, lock, or unlock session begins.
-- [ ] **FLOW-02**: User can perform one NFC operation session at a time without duplicate callbacks or repeated execution.
-- [ ] **FLOW-03**: User can distinguish the current phase of an operation, including waiting, scanning, processing, success, and failure.
+- [x] **FLOW-02**: User can perform one NFC operation session at a time without duplicate callbacks or repeated execution.
+- [x] **FLOW-03**: User can distinguish the current phase of an operation, including waiting, scanning, processing, success, and failure.
 - [ ] **FLOW-04**: User can distinguish write success from read-back verification success after a write operation.
 - [ ] **FLOW-05**: User sees the next recommended action after an operation succeeds, fails, or remains unverified.
 
@@ -78,10 +78,10 @@ Which phases cover which requirements.
 | SHELL-02 | Phase 2 | Pending |
 | SHELL-03 | Phase 1 | Pending |
 | SHELL-04 | Phase 1 | Pending |
-| SHELL-05 | Phase 1 | Pending |
+| SHELL-05 | Phase 1 | Complete |
 | FLOW-01 | Phase 1 | Pending |
-| FLOW-02 | Phase 1 | Pending |
-| FLOW-03 | Phase 1 | Pending |
+| FLOW-02 | Phase 1 | Complete |
+| FLOW-03 | Phase 1 | Complete |
 | FLOW-04 | Phase 3 | Pending |
 | FLOW-05 | Phase 3 | Pending |
 | RISK-01 | Phase 4 | Pending |

@@ -30,7 +30,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. 用户在任一操作中都能看懂当前处于等待、扫描中、处理中、成功或失败哪个阶段。
   4. 用户在应用内能区分某项能力是已支持、未验证、仅演示还是未实现，而不会把 demo 结果误认为真实成功。
   5. 用户连续贴卡或重复返回页面时，应用仍只保留一个生效中的 NFC 操作会话，不会出现重复触发或重复执行。
-**Plans**: TBD
+**Plans**:
+- Plan 01: 共享治理契约落地
+- Plan 02: NFC 流程显式启动与会话收口
+- Plan 03: 路由权限与页面状态表达统一
 **UI hint**: yes
 
 ### Phase 2: 首页与导航重构
@@ -86,7 +89,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 基础治理与边界收口 | 0/TBD | Not started | - |
+| 1. 基础治理与边界收口 | 1/3 | In progress | - |
 | 2. 首页与导航重构 | 0/TBD | Not started | - |
 | 3. 高频流程澄清 | 0/TBD | Not started | - |
 | 4. 高风险流程强化 | 0/TBD | Not started | - |
