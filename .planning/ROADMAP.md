@@ -89,7 +89,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 基础治理与边界收口 | 2/3 | In progress | - |
+| 1. 基础治理与边界收口 | 3/3 | Complete | 2026-03-31 |
 | 2. 首页与导航重构 | 0/TBD | Not started | - |
 | 3. 高频流程澄清 | 0/TBD | Not started | - |
 | 4. 高风险流程强化 | 0/TBD | Not started | - |

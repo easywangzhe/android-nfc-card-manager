@@ -11,8 +11,8 @@ Requirements for this brownfield optimization round. Each requirement will map t
 
 - [ ] **SHELL-01**: User can distinguish primary tasks, high-risk tasks, and management tools from the home screen without opening each page.
 - [ ] **SHELL-02**: User only sees home entry points that match their current role permissions.
-- [ ] **SHELL-03**: User cannot reach restricted pages through navigation or direct route access when their role lacks permission.
-- [ ] **SHELL-04**: User cannot execute restricted NFC operations even if they somehow enter a page without the required role.
+- [x] **SHELL-03**: User cannot reach restricted pages through navigation or direct route access when their role lacks permission.
+- [x] **SHELL-04**: User cannot execute restricted NFC operations even if they somehow enter a page without the required role.
 - [x] **SHELL-05**: User can clearly tell when a capability is fully supported, unverified, demo-only, or not implemented.
 
 ### Flow Safety
@@ -76,8 +76,8 @@ Which phases cover which requirements.
 |-------------|-------|--------|
 | SHELL-01 | Phase 2 | Pending |
 | SHELL-02 | Phase 2 | Pending |
-| SHELL-03 | Phase 1 | Pending |
-| SHELL-04 | Phase 1 | Pending |
+| SHELL-03 | Phase 1 | Complete |
+| SHELL-04 | Phase 1 | Complete |
 | SHELL-05 | Phase 1 | Complete |
 | FLOW-01 | Phase 1 | Complete |
 | FLOW-02 | Phase 1 | Complete |
