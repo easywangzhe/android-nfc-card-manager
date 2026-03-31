@@ -5,7 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,6 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.opencode.nfccardmanager.core.nfc.model.NfcFlowTone
+import com.opencode.nfccardmanager.feature.home.HomeEntry
+import com.opencode.nfccardmanager.feature.home.HomeEntryRiskLevel
+import com.opencode.nfccardmanager.feature.home.HomeSection
 import com.opencode.nfccardmanager.ui.theme.BlueInfoBg
 import com.opencode.nfccardmanager.ui.theme.BluePrimary
 import com.opencode.nfccardmanager.ui.theme.GrayBorder
@@ -195,5 +200,85 @@ fun DangerActionButton(
         ),
     ) {
         Text(text)
+    }
+}
+
+@Composable
+fun HomeSectionCard(
+    section: HomeSection,
+    onEntryClick: (HomeEntry) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    AppCard(modifier = modifier.fillMaxWidth()) {
+        SectionTitle(section.title)
+        Text(
+            text = section.description,
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextSecondary,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(top = 16.dp),
+        ) {
+            section.entries.forEach { entry ->
+                HomeEntryButton(
+                    entry = entry,
+                    onClick = { onEntryClick(entry) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun HomeEntryButton(
+    entry: HomeEntry,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isRisk = entry.riskLevel == HomeEntryRiskLevel.WARNING
+    val colors = if (isRisk) {
+        ButtonDefaults.buttonColors(
+            containerColor = RedDangerBg,
+            contentColor = RedDanger,
+        )
+    } else {
+        ButtonDefaults.buttonColors(
+            containerColor = BlueInfoBg,
+            contentColor = TextPrimary,
+        )
+    }
+    val borderColor = if (isRisk) RedDanger else GrayBorder
+
+    Button(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, borderColor),
+        colors = colors,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = entry.title,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                StatusPill(
+                    text = if (isRisk) "高风险" else "日常入口",
+                    tone = if (isRisk) StatusTone.ERROR else StatusTone.INFO,
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = entry.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isRisk) RedDanger else TextSecondary,
+            )
+        }
     }
 }
