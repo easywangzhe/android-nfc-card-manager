@@ -21,14 +21,22 @@ object AuditLogManager {
         result: String,
         message: String,
         operatorId: String = "system",
+        operatorRole: AuditOperatorRole = AuditOperatorRole.LEGACY,
+        flowStage: AuditFlowStage = AuditFlowStage.UNMARKED,
+        authenticity: AuditAuthenticity = AuditAuthenticity.PENDING,
+        impactScope: AuditImpactScope = AuditImpactScope.PENDING,
     ) {
         repository?.save(
             AuditLogRecord(
                 operationType = operationType,
                 operatorId = operatorId,
+                operatorRole = operatorRole,
                 cardUidMasked = CardInfo(cardUid, TechType.UNKNOWN).maskedUid(),
                 cardType = cardType,
+                flowStage = flowStage,
                 result = result,
+                authenticity = authenticity,
+                impactScope = impactScope,
                 message = message,
                 createdAt = System.currentTimeMillis(),
             )
