@@ -15,7 +15,7 @@ enum class UnlockStage {
 data class UnlockUiState(
     val reason: String = "",
     val credential: String = "",
-    val message: String = "请输入解锁理由和凭据，然后贴卡进行解锁验证。",
+    val message: String = "请输入解锁理由和凭据，确认后点击开始解锁。",
     val stage: UnlockStage = UnlockStage.IDLE,
     val cardInfo: CardInfo? = null,
     val capability: CardCapability? = null,

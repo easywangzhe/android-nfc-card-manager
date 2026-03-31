@@ -34,10 +34,13 @@ import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
 import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
 import com.opencode.nfccardmanager.core.nfc.TagParser
 import com.opencode.nfccardmanager.core.nfc.model.presentation
+import com.opencode.nfccardmanager.core.nfc.model.toCapabilityAuthenticity
 import com.opencode.nfccardmanager.core.nfc.model.WriteCardRequest
 import com.opencode.nfccardmanager.core.nfc.model.WriteCardResult
 import com.opencode.nfccardmanager.core.nfc.model.toNfcFlowStage
 import com.opencode.nfccardmanager.core.nfc.model.toWriteStatusLabel
+import com.opencode.nfccardmanager.core.security.ProtectedAction
+import com.opencode.nfccardmanager.core.security.SecurityManager
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.AppTopBar
 import com.opencode.nfccardmanager.ui.component.KeyValueRow
@@ -47,6 +50,7 @@ import com.opencode.nfccardmanager.ui.component.SectionTitle
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
 import com.opencode.nfccardmanager.ui.component.appPagePadding
+import com.opencode.nfccardmanager.ui.component.toStatusTone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -67,6 +71,8 @@ fun WriteEditorScreen(
     val scope = rememberCoroutineScope()
     var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
     val stagePresentation = uiState.stage.toNfcFlowStage().presentation()
+    val currentRole by SecurityManager.currentRole.collectAsStateWithLifecycle()
+    val authenticityPresentation = ProtectedAction.WRITE.toCapabilityAuthenticity().presentation()
 
     DisposableEffect(nfcSessionManager) {
         onDispose {
@@ -146,7 +152,9 @@ fun WriteEditorScreen(
                         )
                         KeyValueRow("共享阶段", stagePresentation.title)
                         KeyValueRow("会话占用", if (activeSession != null) "进行中" else "空闲")
+                        StatusPill(text = authenticityPresentation.label, tone = authenticityPresentation.tone.toStatusTone())
                         Text(text = stagePresentation.detail, style = MaterialTheme.typography.bodyMedium)
+                        Text(text = authenticityPresentation.detail, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
@@ -270,6 +278,12 @@ fun WriteEditorScreen(
                     PrimaryActionButton(
                         text = if (uiState.stage == WriteStage.WRITING) "等待贴卡中..." else "开始写卡",
                         onClick = {
+                            val permission = SecurityManager.ensureAccess(currentRole, ProtectedAction.WRITE)
+                            if (permission.isFailure) {
+                                viewModel.onError(permission.exceptionOrNull()?.message ?: "当前角色无权写卡")
+                                return@PrimaryActionButton
+                            }
+
                             val sessionManager = nfcSessionManager
                             if (sessionManager == null) {
                                 viewModel.onError("无法获取 Activity 上下文，暂时不能启动写卡扫描")
@@ -355,8 +369,13 @@ fun WriteEditorScreen(
 
             item {
                 SecondaryActionButton(
-                    text = "模拟写卡成功",
+                    text = "模拟写卡成功（仅演示）",
                     onClick = {
+                        val permission = SecurityManager.ensureAccess(currentRole, ProtectedAction.WRITE)
+                        if (permission.isFailure) {
+                            viewModel.onError(permission.exceptionOrNull()?.message ?: "当前角色无权写卡")
+                            return@SecondaryActionButton
+                        }
                         viewModel.onWriteResult(
                             WriteCardResult(
                                 cardInfo = com.opencode.nfccardmanager.core.nfc.model.CardInfo(
@@ -365,12 +384,12 @@ fun WriteEditorScreen(
                                     summary = "演示写卡目标",
                                 ),
                                 success = true,
-                                message = "演示写卡成功",
+                                message = "演示写卡成功（仅演示）",
                                 payloadPreview = uiState.content.ifBlank { "演示内容" },
                                 writeStatus = "WRITE_SUCCESS",
                                 writeReason = "演示模式：标签支持 NDEF 写入。",
                                 verified = true,
-                                verificationMessage = "演示回读校验通过",
+                                verificationMessage = "演示模式：仅更新本地界面，未对真实卡片执行写入与回读",
                             )
                         )
                     },
@@ -394,6 +413,9 @@ fun WriteEditorScreen(
                             Text(text = "写入内容：${result.payloadPreview}")
                             KeyValueRow("回读校验", if (result.verified) "通过" else "失败")
                             Text(text = "校验说明：${result.verificationMessage}")
+                            if (result.message.contains("仅演示") || result.verificationMessage.contains("演示模式")) {
+                                StatusPill(text = "仅演示", tone = StatusTone.INFO)
+                            }
                         }
                     }
                 }

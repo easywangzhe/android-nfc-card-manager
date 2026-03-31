@@ -39,7 +39,10 @@ import com.opencode.nfccardmanager.core.nfc.model.TechType
 import com.opencode.nfccardmanager.core.nfc.model.UnlockCardRequest
 import com.opencode.nfccardmanager.core.nfc.model.UnlockCardResult
 import com.opencode.nfccardmanager.core.nfc.model.presentation
+import com.opencode.nfccardmanager.core.nfc.model.toCapabilityAuthenticity
 import com.opencode.nfccardmanager.core.nfc.model.toNfcFlowStage
+import com.opencode.nfccardmanager.core.security.ProtectedAction
+import com.opencode.nfccardmanager.core.security.SecurityManager
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.KeyValueRow
 import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
@@ -47,6 +50,7 @@ import com.opencode.nfccardmanager.ui.component.SecondaryActionButton
 import com.opencode.nfccardmanager.ui.component.SectionTitle
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
+import com.opencode.nfccardmanager.ui.component.toStatusTone
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -65,6 +69,8 @@ fun UnlockVerifyScreen(
     val scope = rememberCoroutineScope()
     var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
     val stagePresentation = uiState.stage.toNfcFlowStage().presentation()
+    val currentRole by SecurityManager.currentRole.collectAsStateWithLifecycle()
+    val authenticityPresentation = ProtectedAction.UNLOCK.toCapabilityAuthenticity(uiState.capability).presentation()
 
     DisposableEffect(nfcManager) {
         onDispose {
@@ -133,7 +139,9 @@ fun UnlockVerifyScreen(
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     KeyValueRow("共享阶段", stagePresentation.title)
                     KeyValueRow("会话占用", if (activeSession != null) "进行中" else "空闲")
+                    StatusPill(text = authenticityPresentation.label, tone = authenticityPresentation.tone.toStatusTone())
                     Text(text = stagePresentation.detail, style = MaterialTheme.typography.bodyMedium)
+                    Text(text = authenticityPresentation.detail, style = MaterialTheme.typography.bodyMedium)
                     Text(text = uiState.message, style = MaterialTheme.typography.titleMedium)
                 }
             }
@@ -175,6 +183,12 @@ fun UnlockVerifyScreen(
             PrimaryActionButton(
                 text = "开始解锁（仅密码保护型）",
                 onClick = {
+                    val permission = SecurityManager.ensureAccess(currentRole, ProtectedAction.UNLOCK)
+                    if (permission.isFailure) {
+                        viewModel.onError(permission.exceptionOrNull()?.message ?: "当前角色无权解锁")
+                        return@PrimaryActionButton
+                    }
+
                     val session = nfcManager
                     if (uiState.stage != UnlockStage.READY) {
                         viewModel.startUnlock()
@@ -218,8 +232,13 @@ fun UnlockVerifyScreen(
             )
 
             SecondaryActionButton(
-                text = "模拟解锁成功",
+                text = "模拟解锁成功（仅演示）",
                 onClick = {
+                    val permission = SecurityManager.ensureAccess(currentRole, ProtectedAction.UNLOCK)
+                    if (permission.isFailure) {
+                        viewModel.onError(permission.exceptionOrNull()?.message ?: "当前角色无权解锁")
+                        return@SecondaryActionButton
+                    }
                     viewModel.onUnlockResult(
                         UnlockCardResult(
                             cardInfo = CardInfo(
@@ -228,8 +247,8 @@ fun UnlockVerifyScreen(
                                 summary = "演示解锁目标",
                             ),
                             success = true,
-                            message = "演示解锁流程成功",
-                            verificationMessage = "演示模式：已通过凭据校验，后续可接真实解除写保护命令",
+                            message = "演示解锁流程成功（仅演示）",
+                            verificationMessage = "演示模式：已通过本地凭据校验，但未接入真实解除写保护命令",
                         )
                     )
                 },
@@ -246,6 +265,9 @@ fun UnlockVerifyScreen(
                         KeyValueRow("卡类型", result.cardInfo.techType.name)
                         Text(text = "结果：${result.message}")
                         Text(text = "校验说明：${result.verificationMessage}")
+                        if (result.message.contains("仅演示") || result.verificationMessage.contains("演示模式")) {
+                            StatusPill(text = "仅演示", tone = StatusTone.INFO)
+                        }
                     }
                 }
             }

@@ -17,6 +17,6 @@ data class LockUiState(
     val stage: LockStage = LockStage.IDLE,
     val recommendedMode: LockMode = LockMode.NONE,
     val modeHint: String = "系统会优先尝试密码保护锁定；若卡片不支持，则降级为永久只读锁定。",
-    val message: String = "锁卡前会先识别卡片能力，并优先使用可解锁的密码保护方案。",
+    val message: String = "确认风险后点击开始锁卡，系统才会进入识别与锁定流程。",
     val result: LockCardResult? = null,
 )

@@ -11,6 +11,6 @@ enum class FormatStage {
 
 data class FormatUiState(
     val stage: FormatStage = FormatStage.IDLE,
-    val message: String = "请将待格式化卡片贴近手机背部，系统将尝试格式化为 NDEF。",
+    val message: String = "点击开始格式化后，再将待处理卡片贴近手机背部。",
     val result: FormatCardResult? = null,
 )

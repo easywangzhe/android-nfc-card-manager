@@ -30,11 +30,16 @@ import com.opencode.nfccardmanager.core.nfc.NfcOperationType
 import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
 import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
 import com.opencode.nfccardmanager.core.nfc.model.presentation
+import com.opencode.nfccardmanager.core.nfc.model.toCapabilityAuthenticity
 import com.opencode.nfccardmanager.core.nfc.model.toNfcFlowStage
+import com.opencode.nfccardmanager.core.security.ProtectedAction
+import com.opencode.nfccardmanager.core.security.SecurityManager
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.KeyValueRow
 import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
 import com.opencode.nfccardmanager.ui.component.SectionTitle
+import com.opencode.nfccardmanager.ui.component.StatusPill
+import com.opencode.nfccardmanager.ui.component.toStatusTone
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -53,6 +58,8 @@ fun FormatCardScreen(
     val scope = rememberCoroutineScope()
     var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
     val stagePresentation = uiState.stage.toNfcFlowStage().presentation()
+    val currentRole by SecurityManager.currentRole.collectAsStateWithLifecycle()
+    val authenticityPresentation = ProtectedAction.FORMAT.toCapabilityAuthenticity().presentation()
 
     DisposableEffect(nfcManager) {
         onDispose {
@@ -113,7 +120,9 @@ fun FormatCardScreen(
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     KeyValueRow("共享阶段", stagePresentation.title)
                     KeyValueRow("会话占用", if (activeSession != null) "进行中" else "空闲")
+                    StatusPill(text = authenticityPresentation.label, tone = authenticityPresentation.tone.toStatusTone())
                     Text(stagePresentation.detail)
+                    Text(authenticityPresentation.detail)
                     Text(uiState.message)
                 }
             }
@@ -134,6 +143,12 @@ fun FormatCardScreen(
             PrimaryActionButton(
                 text = if (uiState.stage == FormatStage.SCANNING) "等待贴卡中..." else "开始格式化",
                 onClick = {
+                    val permission = SecurityManager.ensureAccess(currentRole, ProtectedAction.FORMAT)
+                    if (permission.isFailure) {
+                        viewModel.onError(permission.exceptionOrNull()?.message ?: "当前角色无权格式化卡片")
+                        return@PrimaryActionButton
+                    }
+
                     val sessionManager = nfcManager
                     if (sessionManager == null) {
                         viewModel.onError("无法获取 Activity 上下文，暂时不能启动格式化扫描")

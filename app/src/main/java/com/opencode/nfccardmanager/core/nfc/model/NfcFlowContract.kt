@@ -1,5 +1,6 @@
 package com.opencode.nfccardmanager.core.nfc.model
 
+import com.opencode.nfccardmanager.core.security.ProtectedAction
 import com.opencode.nfccardmanager.feature.format.FormatStage
 import com.opencode.nfccardmanager.feature.lock.LockStage
 import com.opencode.nfccardmanager.feature.scan.ScanStage
@@ -112,6 +113,45 @@ fun CapabilityAuthenticity.presentation(): CapabilityAuthenticityPresentation {
             detail = "当前设备或卡片能力不支持该操作。",
             tone = NfcFlowTone.DANGER,
         )
+    }
+}
+
+fun ProtectedAction.toCapabilityAuthenticity(capability: CardCapability? = null): CapabilityAuthenticity {
+    return when (this) {
+        ProtectedAction.READ -> when {
+            capability == null -> CapabilityAuthenticity.UNVERIFIED
+            capability.canRead -> CapabilityAuthenticity.SUPPORTED
+            else -> CapabilityAuthenticity.UNSUPPORTED
+        }
+
+        ProtectedAction.WRITE -> when {
+            capability == null -> CapabilityAuthenticity.UNVERIFIED
+            capability.canWrite -> CapabilityAuthenticity.SUPPORTED
+            else -> CapabilityAuthenticity.UNSUPPORTED
+        }
+
+        ProtectedAction.FORMAT -> when {
+            capability == null -> CapabilityAuthenticity.UNVERIFIED
+            capability.canWrite -> CapabilityAuthenticity.UNVERIFIED
+            else -> CapabilityAuthenticity.UNSUPPORTED
+        }
+
+        ProtectedAction.LOCK -> when {
+            capability == null -> CapabilityAuthenticity.UNVERIFIED
+            capability.canLock -> CapabilityAuthenticity.SUPPORTED
+            else -> CapabilityAuthenticity.UNSUPPORTED
+        }
+
+        ProtectedAction.UNLOCK -> when {
+            capability == null -> CapabilityAuthenticity.DEMO_ONLY
+            capability.canUnlock -> CapabilityAuthenticity.DEMO_ONLY
+            else -> CapabilityAuthenticity.UNSUPPORTED
+        }
+
+        ProtectedAction.TEMPLATE,
+        ProtectedAction.AUDIT,
+        ProtectedAction.AUDIT_DETAIL,
+        -> CapabilityAuthenticity.UNVERIFIED
     }
 }
 

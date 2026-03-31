@@ -135,7 +135,7 @@ class ScanViewModel(
                 stage = ScanStage.IDLE,
                 cardInfo = null,
                 capability = null,
-                message = "请将卡片贴近手机背部 NFC 区域",
+                message = "点击开始扫描后，再将卡片贴近手机背部 NFC 区域。",
             )
         }
     }

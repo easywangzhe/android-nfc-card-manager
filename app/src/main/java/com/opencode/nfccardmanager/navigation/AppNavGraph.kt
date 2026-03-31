@@ -28,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.opencode.nfccardmanager.core.security.ProtectedAction
 import com.opencode.nfccardmanager.core.security.SecurityManager
 import com.opencode.nfccardmanager.feature.auth.LoginScreen
 import com.opencode.nfccardmanager.feature.audit.AuditLogDetailScreen
@@ -180,15 +181,20 @@ fun AppNavGraph() {
                     ?: ScanMode.READ
 
                 val allowed = when (mode) {
-                    ScanMode.READ -> SecurityManager.canRead(currentRole)
-                    ScanMode.WRITE -> SecurityManager.canWrite(currentRole)
-                    ScanMode.LOCK -> SecurityManager.canLock(currentRole)
-                    ScanMode.UNLOCK -> SecurityManager.canUnlock(currentRole)
+                    ScanMode.READ -> SecurityManager.canAccess(currentRole, ProtectedAction.READ)
+                    ScanMode.WRITE -> SecurityManager.canAccess(currentRole, ProtectedAction.WRITE)
+                    ScanMode.LOCK -> SecurityManager.canAccess(currentRole, ProtectedAction.LOCK)
+                    ScanMode.UNLOCK -> SecurityManager.canAccess(currentRole, ProtectedAction.UNLOCK)
                 }
 
                 if (!allowed) {
                     PermissionDeniedScreen(
-                        description = "当前角色 ${SecurityManager.roleLabel(currentRole)} 无权访问该操作页面。",
+                        description = when (mode) {
+                            ScanMode.READ -> SecurityManager.accessDeniedMessage(currentRole, ProtectedAction.READ)
+                            ScanMode.WRITE -> SecurityManager.accessDeniedMessage(currentRole, ProtectedAction.WRITE)
+                            ScanMode.LOCK -> SecurityManager.accessDeniedMessage(currentRole, ProtectedAction.LOCK)
+                            ScanMode.UNLOCK -> SecurityManager.accessDeniedMessage(currentRole, ProtectedAction.UNLOCK)
+                        },
                         onBack = { navController.popBackStack() },
                     )
                 } else {
@@ -223,9 +229,9 @@ fun AppNavGraph() {
             }
 
             composable(Routes.FORMAT_CARD) {
-                if (!SecurityManager.canWrite(currentRole)) {
+                if (!SecurityManager.canAccess(currentRole, ProtectedAction.FORMAT)) {
                     PermissionDeniedScreen(
-                        description = "当前角色 ${SecurityManager.roleLabel(currentRole)} 无权格式化卡片。",
+                        description = SecurityManager.accessDeniedMessage(currentRole, ProtectedAction.FORMAT),
                         onBack = { navController.popBackStack() },
                     )
                 } else {
@@ -237,9 +243,9 @@ fun AppNavGraph() {
             }
 
             composable(Routes.WRITE_EDITOR) {
-                if (!SecurityManager.canWrite(currentRole)) {
+                if (!SecurityManager.canAccess(currentRole, ProtectedAction.WRITE)) {
                     PermissionDeniedScreen(
-                        description = "当前角色 ${SecurityManager.roleLabel(currentRole)} 无权写卡。",
+                        description = SecurityManager.accessDeniedMessage(currentRole, ProtectedAction.WRITE),
                         onBack = { navController.popBackStack() },
                     )
                 } else {
@@ -248,9 +254,9 @@ fun AppNavGraph() {
             }
 
             composable(Routes.LOCK_RISK) {
-                if (!SecurityManager.canLock(currentRole)) {
+                if (!SecurityManager.canAccess(currentRole, ProtectedAction.LOCK)) {
                     PermissionDeniedScreen(
-                        description = "当前角色 ${SecurityManager.roleLabel(currentRole)} 无权锁卡。",
+                        description = SecurityManager.accessDeniedMessage(currentRole, ProtectedAction.LOCK),
                         onBack = { navController.popBackStack() },
                     )
                 } else {
@@ -259,9 +265,9 @@ fun AppNavGraph() {
             }
 
             composable(Routes.UNLOCK_VERIFY) {
-                if (!SecurityManager.canUnlock(currentRole)) {
+                if (!SecurityManager.canAccess(currentRole, ProtectedAction.UNLOCK)) {
                     PermissionDeniedScreen(
-                        description = "当前角色 ${SecurityManager.roleLabel(currentRole)} 无权解锁。",
+                        description = SecurityManager.accessDeniedMessage(currentRole, ProtectedAction.UNLOCK),
                         onBack = { navController.popBackStack() },
                     )
                 } else {
@@ -270,9 +276,9 @@ fun AppNavGraph() {
             }
 
             composable(Routes.TEMPLATE) {
-                if (!SecurityManager.canManageTemplate(currentRole)) {
+                if (!SecurityManager.canAccess(currentRole, ProtectedAction.TEMPLATE)) {
                     PermissionDeniedScreen(
-                        description = "当前角色 ${SecurityManager.roleLabel(currentRole)} 无权管理模板。",
+                        description = SecurityManager.accessDeniedMessage(currentRole, ProtectedAction.TEMPLATE),
                         onBack = { navController.popBackStack() },
                     )
                 } else {
@@ -303,9 +309,9 @@ fun AppNavGraph() {
             }
 
             composable(Routes.AUDIT) {
-                if (!SecurityManager.canViewAudit(currentRole)) {
+                if (!SecurityManager.canAccess(currentRole, ProtectedAction.AUDIT)) {
                     PermissionDeniedScreen(
-                        description = "当前角色 ${SecurityManager.roleLabel(currentRole)} 无权查看审计日志。",
+                        description = SecurityManager.accessDeniedMessage(currentRole, ProtectedAction.AUDIT),
                         onBack = { navController.popBackStack() },
                     )
                 } else {
@@ -320,9 +326,9 @@ fun AppNavGraph() {
                 route = Routes.AUDIT_DETAIL,
                 arguments = listOf(navArgument("logId") { type = NavType.LongType }),
             ) { backStackEntry ->
-                if (!SecurityManager.canViewAuditDetail(currentRole)) {
+                if (!SecurityManager.canAccess(currentRole, ProtectedAction.AUDIT_DETAIL)) {
                     PermissionDeniedScreen(
-                        description = "当前角色 ${SecurityManager.roleLabel(currentRole)} 无权查看日志详情。",
+                        description = SecurityManager.accessDeniedMessage(currentRole, ProtectedAction.AUDIT_DETAIL),
                         onBack = { navController.popBackStack() },
                     )
                 } else {

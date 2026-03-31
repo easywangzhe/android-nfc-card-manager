@@ -32,10 +32,16 @@ import com.opencode.nfccardmanager.core.common.findActivity
 import com.opencode.nfccardmanager.core.nfc.NfcOperationType
 import com.opencode.nfccardmanager.core.nfc.NfcSessionManager
 import com.opencode.nfccardmanager.core.nfc.ReaderModeSession
+import com.opencode.nfccardmanager.core.nfc.model.CapabilityAuthenticity
 import com.opencode.nfccardmanager.core.nfc.TagParser
 import com.opencode.nfccardmanager.core.nfc.model.presentation
 import com.opencode.nfccardmanager.core.nfc.model.maskedUid
+import com.opencode.nfccardmanager.core.nfc.model.toCapabilityAuthenticity
 import com.opencode.nfccardmanager.core.nfc.model.toNfcFlowStage
+import com.opencode.nfccardmanager.core.security.ProtectedAction
+import com.opencode.nfccardmanager.core.security.SecurityManager
+import com.opencode.nfccardmanager.ui.component.StatusPill
+import com.opencode.nfccardmanager.ui.component.toStatusTone
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -55,6 +61,15 @@ fun ScanScreen(
     var sessionRestartToken by remember { mutableIntStateOf(0) }
     var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
     val stagePresentation = uiState.stage.toNfcFlowStage().presentation()
+    val currentRole by SecurityManager.currentRole.collectAsStateWithLifecycle()
+    val action = when (mode) {
+        ScanMode.READ -> ProtectedAction.READ
+        ScanMode.WRITE -> ProtectedAction.WRITE
+        ScanMode.LOCK -> ProtectedAction.LOCK
+        ScanMode.UNLOCK -> ProtectedAction.UNLOCK
+    }
+    val authenticity = action.toCapabilityAuthenticity(uiState.capability)
+    val authenticityPresentation = authenticity.presentation()
     val nfcSessionManager = remember(activity) {
         activity?.let { NfcSessionManager(it) }
     }
@@ -140,6 +155,8 @@ fun ScanScreen(
                     Text(text = "共享阶段：${stagePresentation.title}")
                     Text(text = "阶段说明：${stagePresentation.detail}")
                     Text(text = "会话占用：${if (activeSession != null) "进行中" else "空闲"}")
+                    StatusPill(text = authenticityPresentation.label, tone = authenticityPresentation.tone.toStatusTone())
+                    Text(text = "真实性：${authenticityPresentation.detail}")
                     Text(text = "NFC 可用：${uiState.isNfcAvailable}")
                     Text(text = "NFC 已开启：${uiState.isNfcEnabled}")
                     uiState.cardInfo?.let { cardInfo ->
@@ -152,6 +169,12 @@ fun ScanScreen(
 
             Button(
                 onClick = {
+                    val permission = SecurityManager.ensureAccess(currentRole, action)
+                    if (permission.isFailure) {
+                        viewModel.onError(permission.exceptionOrNull()?.message ?: "当前角色无权执行该操作")
+                        return@Button
+                    }
+
                     val sessionManager = nfcSessionManager
                     if (sessionManager == null) {
                         viewModel.onError("无法获取 Activity 上下文，暂时不能启动 NFC 扫描")
@@ -196,11 +219,18 @@ fun ScanScreen(
             }
 
             Button(
-                onClick = { viewModel.simulateReadCard() },
+                onClick = {
+                    val permission = SecurityManager.ensureAccess(currentRole, action)
+                    if (permission.isFailure) {
+                        viewModel.onError(permission.exceptionOrNull()?.message ?: "当前角色无权执行该操作")
+                    } else {
+                        viewModel.simulateReadCard()
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = activeSession == null,
             ) {
-                Text("模拟识别卡片")
+                Text("模拟识别卡片（仅演示）")
             }
 
             Button(
@@ -233,7 +263,7 @@ fun ScanScreen(
                     modifier = Modifier.fillMaxWidth(),
                     enabled = activeSession == null,
                 ) {
-                    Text("进入读卡结果演示")
+                    Text("进入读卡结果演示（仅演示）")
                 }
             }
         }

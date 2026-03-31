@@ -18,6 +18,17 @@ enum class UserRole {
     AUDITOR,
 }
 
+enum class ProtectedAction {
+    READ,
+    WRITE,
+    FORMAT,
+    LOCK,
+    UNLOCK,
+    TEMPLATE,
+    AUDIT,
+    AUDIT_DETAIL,
+}
+
 object SecurityManager {
     private val mockAccounts = listOf(
         UserSession(username = "operator", displayName = "一线操作员", role = UserRole.OPERATOR),
@@ -86,6 +97,41 @@ object SecurityManager {
     fun canViewAudit(role: UserRole): Boolean = true
 
     fun canViewAuditDetail(role: UserRole): Boolean = true
+
+    fun canAccess(role: UserRole, action: ProtectedAction): Boolean {
+        return when (action) {
+            ProtectedAction.READ -> canRead(role)
+            ProtectedAction.WRITE -> canWrite(role)
+            ProtectedAction.FORMAT -> canWrite(role)
+            ProtectedAction.LOCK -> canLock(role)
+            ProtectedAction.UNLOCK -> canUnlock(role)
+            ProtectedAction.TEMPLATE -> canManageTemplate(role)
+            ProtectedAction.AUDIT -> canViewAudit(role)
+            ProtectedAction.AUDIT_DETAIL -> canViewAuditDetail(role)
+        }
+    }
+
+    fun ensureAccess(role: UserRole, action: ProtectedAction): Result<Unit> {
+        if (canAccess(role, action)) {
+            return Result.success(Unit)
+        }
+        return Result.failure(IllegalStateException(accessDeniedMessage(role, action)))
+    }
+
+    fun accessDeniedMessage(role: UserRole, action: ProtectedAction): String {
+        val roleLabel = roleLabel(role)
+        val actionLabel = when (action) {
+            ProtectedAction.READ -> "读卡"
+            ProtectedAction.WRITE -> "写卡"
+            ProtectedAction.FORMAT -> "格式化卡片"
+            ProtectedAction.LOCK -> "锁卡"
+            ProtectedAction.UNLOCK -> "解锁"
+            ProtectedAction.TEMPLATE -> "管理模板"
+            ProtectedAction.AUDIT -> "查看审计日志"
+            ProtectedAction.AUDIT_DETAIL -> "查看日志详情"
+        }
+        return "当前角色 $roleLabel 无权执行${actionLabel}。"
+    }
 
     fun roleLabel(role: UserRole): String = when (role) {
         UserRole.OPERATOR -> "普通操作员"

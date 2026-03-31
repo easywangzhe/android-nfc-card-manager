@@ -41,7 +41,10 @@ import com.opencode.nfccardmanager.core.nfc.model.LockCardResult
 import com.opencode.nfccardmanager.core.nfc.model.LockMode
 import com.opencode.nfccardmanager.core.nfc.model.TechType
 import com.opencode.nfccardmanager.core.nfc.model.presentation
+import com.opencode.nfccardmanager.core.nfc.model.toCapabilityAuthenticity
 import com.opencode.nfccardmanager.core.nfc.model.toNfcFlowStage
+import com.opencode.nfccardmanager.core.security.ProtectedAction
+import com.opencode.nfccardmanager.core.security.SecurityManager
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.DangerActionButton
 import com.opencode.nfccardmanager.ui.component.KeyValueRow
@@ -49,6 +52,7 @@ import com.opencode.nfccardmanager.ui.component.SecondaryActionButton
 import com.opencode.nfccardmanager.ui.component.SectionTitle
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
+import com.opencode.nfccardmanager.ui.component.toStatusTone
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -68,6 +72,8 @@ fun LockRiskScreen(
     val scope = rememberCoroutineScope()
     var activeSession by remember { mutableStateOf<ReaderModeSession?>(null) }
     val stagePresentation = uiState.stage.toNfcFlowStage().presentation()
+    val currentRole by SecurityManager.currentRole.collectAsStateWithLifecycle()
+    val authenticityPresentation = ProtectedAction.LOCK.toCapabilityAuthenticity().presentation()
 
     DisposableEffect(sessionManager) {
         onDispose {
@@ -136,6 +142,7 @@ fun LockRiskScreen(
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     KeyValueRow("共享阶段", stagePresentation.title)
                     KeyValueRow("会话占用", if (activeSession != null) "进行中" else "空闲")
+                    StatusPill(text = authenticityPresentation.label, tone = authenticityPresentation.tone.toStatusTone())
                     KeyValueRow(
                         "推荐方式",
                         when (uiState.recommendedMode) {
@@ -145,6 +152,7 @@ fun LockRiskScreen(
                         }
                     )
                     Text(text = stagePresentation.detail, style = MaterialTheme.typography.bodyMedium)
+                    Text(text = authenticityPresentation.detail, style = MaterialTheme.typography.bodyMedium)
                     Text(text = uiState.message, style = MaterialTheme.typography.bodyLarge)
                     Text(text = uiState.modeHint, style = MaterialTheme.typography.bodyMedium)
                 }
@@ -173,6 +181,12 @@ fun LockRiskScreen(
             DangerActionButton(
                 text = "确认锁卡（高风险）",
                 onClick = {
+                    val permission = SecurityManager.ensureAccess(currentRole, ProtectedAction.LOCK)
+                    if (permission.isFailure) {
+                        viewModel.onError(permission.exceptionOrNull()?.message ?: "当前角色无权锁卡")
+                        return@DangerActionButton
+                    }
+
                     val nfcManager = sessionManager
                     if (uiState.stage != LockStage.READY) {
                         viewModel.startLocking()
@@ -221,8 +235,13 @@ fun LockRiskScreen(
             )
 
             SecondaryActionButton(
-                text = "模拟锁卡成功",
+                text = "模拟锁卡成功（仅演示）",
                 onClick = {
+                    val permission = SecurityManager.ensureAccess(currentRole, ProtectedAction.LOCK)
+                    if (permission.isFailure) {
+                        viewModel.onError(permission.exceptionOrNull()?.message ?: "当前角色无权锁卡")
+                        return@SecondaryActionButton
+                    }
                     viewModel.onLockResult(
                         LockCardResult(
                             cardInfo = CardInfo(
@@ -231,11 +250,11 @@ fun LockRiskScreen(
                                 summary = "演示锁卡目标",
                             ),
                             success = true,
-                            message = "演示锁卡成功，已优先采用密码保护方案",
+                            message = "演示锁卡成功（仅演示），已优先采用密码保护方案",
                             lockMode = LockMode.PASSWORD_PROTECTED,
                             irreversible = false,
                             verified = true,
-                            verificationMessage = "演示校验通过：后续可通过凭据解锁",
+                            verificationMessage = "演示模式：未对真实卡片执行锁定，仅展示密码保护方案流程",
                         )
                     )
                 },
@@ -255,6 +274,9 @@ fun LockRiskScreen(
                         KeyValueRow("不可逆", if (result.irreversible) "是" else "否")
                         KeyValueRow("只读校验", if (result.verified) "通过" else "失败")
                         Text(text = "校验说明：${result.verificationMessage}")
+                        if (result.message.contains("仅演示") || result.verificationMessage.contains("演示模式")) {
+                            StatusPill(text = "仅演示", tone = StatusTone.INFO)
+                        }
                     }
                 }
             }

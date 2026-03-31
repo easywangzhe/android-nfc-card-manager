@@ -27,6 +27,6 @@ data class WriteUiState(
     val detectedTechList: List<String> = emptyList(),
     val lastErrorDetail: String = "",
     val stage: WriteStage = WriteStage.IDLE,
-    val message: String = "请输入待写入的文本内容，然后贴卡写入",
+    val message: String = "请输入待写入的文本内容，确认后点击开始写卡。",
     val result: WriteCardResult? = null,
 )

@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.opencode.nfccardmanager.core.nfc.model.NfcFlowTone
 import com.opencode.nfccardmanager.ui.theme.BlueInfoBg
 import com.opencode.nfccardmanager.ui.theme.BluePrimary
 import com.opencode.nfccardmanager.ui.theme.GrayBorder
@@ -39,6 +40,15 @@ import com.opencode.nfccardmanager.ui.theme.YellowWarning
 import com.opencode.nfccardmanager.ui.theme.YellowWarningBg
 
 enum class StatusTone { SUCCESS, WARNING, ERROR, INFO }
+
+fun NfcFlowTone.toStatusTone(): StatusTone = when (this) {
+    NfcFlowTone.SUCCESS -> StatusTone.SUCCESS
+    NfcFlowTone.WARNING -> StatusTone.WARNING
+    NfcFlowTone.DANGER -> StatusTone.ERROR
+    NfcFlowTone.INFO,
+    NfcFlowTone.NEUTRAL,
+    -> StatusTone.INFO
+}
 
 val PagePadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp)
 

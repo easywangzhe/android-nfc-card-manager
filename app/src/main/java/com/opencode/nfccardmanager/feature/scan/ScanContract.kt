@@ -26,7 +26,7 @@ data class ScanUiState(
     val isNfcEnabled: Boolean = true,
     val cardInfo: CardInfo? = null,
     val capability: CardCapability? = null,
-    val message: String = "请将卡片贴近手机背部 NFC 区域",
+    val message: String = "点击开始扫描后，再将卡片贴近手机背部 NFC 区域。",
 )
 
 sealed interface ScanUiEffect {

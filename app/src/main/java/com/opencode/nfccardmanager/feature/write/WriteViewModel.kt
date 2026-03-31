@@ -53,9 +53,9 @@ class WriteViewModel : ViewModel() {
                 selectedTemplateId = null,
                 stage = if (value.isBlank()) WriteStage.IDLE else WriteStage.READY,
                 message = if (value.isBlank()) {
-                    "请输入待写入的文本内容，然后贴卡写入"
+                    "请输入待写入的文本内容，确认后点击开始写卡。"
                 } else {
-                    "内容已准备，请将支持 NDEF 的标签贴近手机背部"
+                    "内容已准备，请点击开始写卡后再贴近支持 NDEF 的标签。"
                 },
             )
         }
@@ -204,7 +204,7 @@ class WriteViewModel : ViewModel() {
         _uiState.update {
             it.copy(
                 stage = if (it.content.isBlank()) WriteStage.IDLE else WriteStage.READY,
-                message = if (it.content.isBlank()) "请输入待写入的文本内容，然后贴卡写入" else "内容已准备，请将支持 NDEF 的标签贴近手机背部",
+                message = if (it.content.isBlank()) "请输入待写入的文本内容，确认后点击开始写卡。" else "内容已准备，请点击开始写卡后再贴近支持 NDEF 的标签。",
                 detectedUid = null,
                 detectedTechType = null,
                 detectedWritable = null,
