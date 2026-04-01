@@ -120,7 +120,9 @@ fun WriteEditorScreen(
         },
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier.appPagePadding(paddingValues),
+            modifier = Modifier
+                .appPagePadding(paddingValues)
+                .testTag(AppTestTags.WRITE_ROOT),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {

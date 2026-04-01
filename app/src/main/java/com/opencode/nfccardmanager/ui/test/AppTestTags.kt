@@ -47,6 +47,7 @@ object AppTestTags {
     const val READ_PRIMARY_CTA = "read_primary_cta"
     const val READ_SECONDARY_CTA = "read_secondary_cta"
 
+    const val WRITE_ROOT = "write_root"
     const val WRITE_STAGE_CARD = "write_stage_card"
     const val WRITE_EXECUTION_SECTION = "write_execution_section"
     const val WRITE_VERIFICATION_SECTION = "write_verification_section"

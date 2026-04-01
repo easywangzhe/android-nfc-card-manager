@@ -164,6 +164,33 @@ fun FormatCardScreen(
                 }
             }
 
+            if (uiState.result == null && uiState.resultGuidance != null && uiState.stage == FormatStage.ERROR) {
+                val guidance = uiState.resultGuidance ?: return@Column
+                AppCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(AppTestTags.FORMAT_RESULT_CARD),
+                ) {
+                    SectionTitle("格式化失败")
+                    Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("结果：${uiState.message}")
+                        Column(modifier = Modifier.testTag(AppTestTags.FORMAT_WHAT_HAPPENED_SECTION)) {
+                            SectionTitle("发生了什么")
+                            Text(guidance.conclusion)
+                        }
+                        Column(modifier = Modifier.testTag(AppTestTags.FORMAT_WHY_SECTION)) {
+                            SectionTitle("为什么")
+                            Text(guidance.reasonSummary)
+                        }
+                        Column(modifier = Modifier.testTag(AppTestTags.FORMAT_NEXT_STEP_SECTION)) {
+                            SectionTitle(guidance.title)
+                            Text(guidance.recommendedAction)
+                            KeyValueRow("建议 CTA", guidance.ctaLabel)
+                        }
+                    }
+                }
+            }
+
             PrimaryActionButton(
                 text = if (uiState.stage == FormatStage.SCANNING) "等待贴卡中..." else "开始格式化",
                 onClick = {
