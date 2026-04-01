@@ -87,8 +87,8 @@ fun AppNavGraph() {
     val bottomNavItems = buildBottomNavDestinations(currentRole).mapNotNull(::toBottomNavItem)
     val showBottomBar = currentSession != null && currentRoute in bottomNavItems.map { it.route }
 
-    LaunchedEffect(currentSession) {
-        if (currentSession == null) {
+    LaunchedEffect(currentSession, currentRoute) {
+        if (currentSession == null && currentRoute != null && currentRoute != Routes.LOGIN) {
             navController.navigate(Routes.LOGIN) {
                 popUpTo(navController.graph.id) { inclusive = true }
             }
