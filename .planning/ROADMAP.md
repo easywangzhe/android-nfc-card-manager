@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: 首页与导航重构** - 重组首页入口与导航层级，让主任务、高风险入口和管理入口一眼可分。 (completed 2026-03-31)
 - [x] **Phase 3: 高频流程澄清** - 优化读卡、写卡、格式化等高频流程的阶段反馈、结果拆分与下一步指引。 (completed 2026-03-31)
 - [x] **Phase 4: 高风险流程强化** - 强化锁卡与解锁流程的风险提示、确认链路、处理中保护与结果来源表达。 (completed 2026-03-31)
-- [ ] **Phase 5: 辅助页统一收尾** - 统一模板、日志、设置等辅助页面的信息层级、审计可读性和安全说明。
+- [x] **Phase 5: 辅助页统一收尾** - 统一模板、日志、设置等辅助页面的信息层级、审计可读性和安全说明。 (completed 2026-03-31)
 
 ## Phase Details
 
