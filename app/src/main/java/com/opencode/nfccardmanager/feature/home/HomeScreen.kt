@@ -16,16 +16,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.opencode.nfccardmanager.core.security.UserSession
 import com.opencode.nfccardmanager.core.security.UserRole
-import com.opencode.nfccardmanager.ui.component.HomeSectionCard
 import com.opencode.nfccardmanager.ui.component.AppCard
 import com.opencode.nfccardmanager.ui.component.AppTopBar
+import com.opencode.nfccardmanager.ui.component.HomeEntryButton
 import com.opencode.nfccardmanager.ui.component.SectionTitle
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
 import com.opencode.nfccardmanager.ui.component.appPagePadding
+import com.opencode.nfccardmanager.ui.test.AppTestTags
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,11 +53,17 @@ fun HomeScreen(
         },
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier.appPagePadding(paddingValues),
+            modifier = Modifier
+                .appPagePadding(paddingValues)
+                .testTag(AppTestTags.HOME_ROOT),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             item {
-                AppCard(modifier = Modifier.fillMaxWidth()) {
+                AppCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(AppTestTags.HOME_SESSION_CARD),
+                ) {
                     Text(text = "NFC 卡片管理", style = MaterialTheme.typography.headlineSmall)
                     Text(
                         text = "当前用户：${currentSession.displayName}（${currentSession.username}）",
@@ -77,7 +85,10 @@ fun HomeScreen(
             item {
                 Column {
                     SectionTitle("角色切换")
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.testTag(AppTestTags.HOME_ROLE_SWITCH_ROW),
+                    ) {
                         items(UserRole.entries.toList()) { role ->
                             FilterChip(
                                 selected = role == currentRole,
@@ -90,20 +101,40 @@ fun HomeScreen(
             }
 
             items(sections) { section ->
-                HomeSectionCard(
-                    section = section,
-                    onEntryClick = { entry ->
-                        when (entry.destination) {
-                            HomeEntryDestination.READ -> onReadClick()
-                            HomeEntryDestination.WRITE -> onWriteClick()
-                            HomeEntryDestination.LOCK -> onLockClick()
-                            HomeEntryDestination.UNLOCK -> onUnlockClick()
-                            HomeEntryDestination.TEMPLATE -> onTemplateClick()
-                            HomeEntryDestination.AUDIT -> onAuditClick()
-                            HomeEntryDestination.SETTINGS -> onSettingsClick()
+                AppCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(homeSectionTag(section.kind)),
+                ) {
+                    SectionTitle(section.title)
+                    Text(
+                        text = section.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.padding(top = 16.dp),
+                    ) {
+                        section.entries.forEach { entry ->
+                            HomeEntryButton(
+                                entry = entry,
+                                onClick = {
+                                    when (entry.destination) {
+                                        HomeEntryDestination.READ -> onReadClick()
+                                        HomeEntryDestination.WRITE -> onWriteClick()
+                                        HomeEntryDestination.LOCK -> onLockClick()
+                                        HomeEntryDestination.UNLOCK -> onUnlockClick()
+                                        HomeEntryDestination.TEMPLATE -> onTemplateClick()
+                                        HomeEntryDestination.AUDIT -> onAuditClick()
+                                        HomeEntryDestination.SETTINGS -> onSettingsClick()
+                                    }
+                                },
+                                modifier = Modifier.testTag(homeEntryTag(entry.destination)),
+                            )
                         }
-                    },
-                )
+                    }
+                }
             }
 
             item {
@@ -117,5 +148,25 @@ fun HomeScreen(
                 }
             }
         }
+    }
+}
+
+private fun homeSectionTag(kind: HomeSectionKind): String {
+    return when (kind) {
+        HomeSectionKind.PRIMARY -> AppTestTags.HOME_SECTION_PRIMARY
+        HomeSectionKind.HIGH_RISK -> AppTestTags.HOME_SECTION_HIGH_RISK
+        HomeSectionKind.MANAGEMENT -> AppTestTags.HOME_SECTION_MANAGEMENT
+    }
+}
+
+private fun homeEntryTag(destination: HomeEntryDestination): String {
+    return when (destination) {
+        HomeEntryDestination.READ -> AppTestTags.HOME_ENTRY_READ
+        HomeEntryDestination.WRITE -> AppTestTags.HOME_ENTRY_WRITE
+        HomeEntryDestination.LOCK -> AppTestTags.HOME_ENTRY_LOCK
+        HomeEntryDestination.UNLOCK -> AppTestTags.HOME_ENTRY_UNLOCK
+        HomeEntryDestination.TEMPLATE -> AppTestTags.HOME_ENTRY_TEMPLATE
+        HomeEntryDestination.AUDIT -> AppTestTags.HOME_ENTRY_AUDIT
+        HomeEntryDestination.SETTINGS -> AppTestTags.HOME_ENTRY_SETTINGS
     }
 }

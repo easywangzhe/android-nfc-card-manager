@@ -2,6 +2,7 @@ package com.opencode.nfccardmanager.feature.lock
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,6 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -55,6 +57,7 @@ import com.opencode.nfccardmanager.ui.component.SectionTitle
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
 import com.opencode.nfccardmanager.ui.component.toStatusTone
+import com.opencode.nfccardmanager.ui.test.AppTestTags
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -134,7 +137,11 @@ fun LockRiskScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            AppCard(modifier = Modifier.fillMaxWidth()) {
+            AppCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.LOCK_RISK_SUMMARY_CARD),
+            ) {
                 SectionTitle("风险摘要")
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatusPill("高风险操作", StatusTone.ERROR)
@@ -147,7 +154,11 @@ fun LockRiskScreen(
                 }
             }
 
-            AppCard(modifier = Modifier.fillMaxWidth()) {
+            AppCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.LOCK_AUTHENTICITY_CARD),
+            ) {
                 SectionTitle("当前支持方式与真实性")
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     KeyValueRow("共享阶段", stagePresentation.title)
@@ -255,7 +266,9 @@ fun LockRiskScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.LOCK_CONFIRM_BUTTON),
                 enabled = uiState.stage == LockStage.READY && activeSession == null,
             )
 
@@ -284,27 +297,35 @@ fun LockRiskScreen(
                         )
                     )
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.LOCK_SIMULATE_SUCCESS_BUTTON),
                 enabled = activeSession == null && !isProcessing,
             )
 
             uiState.result?.let { result ->
-                AppCard(modifier = Modifier.fillMaxWidth()) {
+                AppCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(AppTestTags.LOCK_RESULT_CARD),
+                ) {
                     SectionTitle(if (result.success) "锁卡结果" else "锁卡失败")
                     Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         uiState.resultGuidance?.let { guidance ->
-                            StatusPill(
-                                text = lockResultSourceLabel(guidance.source),
-                                tone = when (guidance.source) {
-                                    HighRiskResultSource.CONFIRMED_EXECUTED -> StatusTone.SUCCESS
-                                    HighRiskResultSource.UNVERIFIED -> StatusTone.WARNING
-                                    HighRiskResultSource.FAILED -> StatusTone.ERROR
-                                    HighRiskResultSource.DEMO_ONLY -> StatusTone.INFO
-                                }
-                            )
-                            Text(text = "发生了什么：${guidance.conclusion}")
-                            Text(text = "当前最安全下一步：${guidance.recoveryAction}")
-                            Text(text = "建议动作：${guidance.ctaLabel}")
+                            Column(modifier = Modifier.testTag(AppTestTags.LOCK_RESULT_SOURCE)) {
+                                StatusPill(
+                                    text = lockResultSourceLabel(guidance.source),
+                                    tone = when (guidance.source) {
+                                        HighRiskResultSource.CONFIRMED_EXECUTED -> StatusTone.SUCCESS
+                                        HighRiskResultSource.UNVERIFIED -> StatusTone.WARNING
+                                        HighRiskResultSource.FAILED -> StatusTone.ERROR
+                                        HighRiskResultSource.DEMO_ONLY -> StatusTone.INFO
+                                    }
+                                )
+                                Text(text = "发生了什么：${guidance.conclusion}")
+                                Text(text = "当前最安全下一步：${guidance.recoveryAction}")
+                                Text(text = "建议动作：${guidance.ctaLabel}")
+                            }
                         }
                         Text(text = if (result.success) "锁卡成功" else "锁卡失败")
                         uiState.maskedSensitiveFields.forEach { field ->
@@ -317,7 +338,9 @@ fun LockRiskScreen(
                         KeyValueRow("结果校验", if (result.verified) "已确认执行" else "结果未验证")
                         Text(text = "校验说明：${result.verificationMessage}")
                         if (result.message.contains("仅演示") || result.verificationMessage.contains("演示模式")) {
-                            StatusPill(text = "仅演示", tone = StatusTone.INFO)
+                            Box(modifier = Modifier.testTag(AppTestTags.LOCK_DEMO_ONLY_BADGE)) {
+                                StatusPill(text = "仅演示", tone = StatusTone.INFO)
+                            }
                         }
                     }
                 }

@@ -16,11 +16,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.opencode.nfccardmanager.ui.test.AppTestTags
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,24 +53,34 @@ fun LoginScreen(
                         value = uiState.username,
                         onValueChange = viewModel::onUsernameChange,
                         label = { Text("用户名") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(AppTestTags.LOGIN_USERNAME_INPUT),
                         singleLine = true,
                     )
                     OutlinedTextField(
                         value = uiState.password,
                         onValueChange = viewModel::onPasswordChange,
                         label = { Text("密码") },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(AppTestTags.LOGIN_PASSWORD_INPUT),
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         singleLine = true,
                     )
                     uiState.errorMessage?.let { error ->
-                        Text(text = error, color = MaterialTheme.colorScheme.error)
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.testTag(AppTestTags.LOGIN_ERROR_MESSAGE),
+                        )
                     }
                     Button(
                         onClick = { viewModel.login(onLoginSuccess) },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(AppTestTags.LOGIN_SUBMIT_BUTTON),
                         enabled = !uiState.isLoading,
                     ) {
                         Text(if (uiState.isLoading) "登录中..." else "登录")

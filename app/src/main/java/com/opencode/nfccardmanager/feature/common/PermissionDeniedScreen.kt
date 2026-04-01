@@ -15,7 +15,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.opencode.nfccardmanager.ui.test.AppTestTags
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,17 +43,29 @@ fun PermissionDeniedScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(24.dp),
+                .padding(24.dp)
+                .testTag(AppTestTags.PERMISSION_DENIED_ROOT),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(text = title, style = MaterialTheme.typography.headlineSmall)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.testTag(AppTestTags.PERMISSION_DENIED_TITLE),
+            )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(top = 12.dp),
+                modifier = Modifier
+                    .padding(top = 12.dp)
+                    .testTag(AppTestTags.PERMISSION_DENIED_DESCRIPTION),
             )
-            Button(onClick = onBack, modifier = Modifier.padding(top = 20.dp)) {
+            Button(
+                onClick = onBack,
+                modifier = Modifier
+                    .padding(top = 20.dp)
+                    .testTag(AppTestTags.PERMISSION_DENIED_BACK_BUTTON),
+            ) {
                 Text("返回上一页")
             }
         }

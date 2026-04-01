@@ -2,6 +2,7 @@ package com.opencode.nfccardmanager.feature.unlock
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -53,6 +55,7 @@ import com.opencode.nfccardmanager.ui.component.SectionTitle
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
 import com.opencode.nfccardmanager.ui.component.toStatusTone
+import com.opencode.nfccardmanager.ui.test.AppTestTags
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -131,7 +134,11 @@ fun UnlockVerifyScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            AppCard(modifier = Modifier.fillMaxWidth()) {
+            AppCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.UNLOCK_BOUNDARY_CARD),
+            ) {
                 SectionTitle("解锁能力边界")
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatusPill("受控恢复操作", StatusTone.WARNING)
@@ -144,7 +151,11 @@ fun UnlockVerifyScreen(
                 }
             }
 
-            AppCard(modifier = Modifier.fillMaxWidth()) {
+            AppCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.UNLOCK_AUTHENTICITY_CARD),
+            ) {
                 SectionTitle("当前状态与真实性")
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     KeyValueRow("共享阶段", stagePresentation.title)
@@ -258,7 +269,9 @@ fun UnlockVerifyScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.UNLOCK_START_BUTTON),
                 enabled = uiState.stage == UnlockStage.READY && activeSession == null,
             )
 
@@ -284,27 +297,35 @@ fun UnlockVerifyScreen(
                         )
                     )
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.UNLOCK_SIMULATE_SUCCESS_BUTTON),
                 enabled = activeSession == null && !isProcessing,
             )
 
             uiState.result?.let { result ->
-                AppCard(modifier = Modifier.fillMaxWidth()) {
+                AppCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(AppTestTags.UNLOCK_RESULT_CARD),
+                ) {
                     SectionTitle(if (result.success) "解锁结果" else "解锁失败")
                     Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         uiState.resultGuidance?.let { guidance ->
-                            StatusPill(
-                                text = unlockResultSourceLabel(guidance.source),
-                                tone = when (guidance.source) {
-                                    HighRiskResultSource.DEMO_ONLY -> StatusTone.INFO
-                                    HighRiskResultSource.FAILED -> StatusTone.ERROR
-                                    HighRiskResultSource.UNVERIFIED -> StatusTone.WARNING
-                                    HighRiskResultSource.CONFIRMED_EXECUTED -> StatusTone.SUCCESS
-                                }
-                            )
-                            Text(text = "发生了什么：${guidance.conclusion}")
-                            Text(text = "当前最安全下一步：${guidance.recoveryAction}")
-                            Text(text = "建议动作：${guidance.ctaLabel}")
+                            Column(modifier = Modifier.testTag(AppTestTags.UNLOCK_RESULT_SOURCE)) {
+                                StatusPill(
+                                    text = unlockResultSourceLabel(guidance.source),
+                                    tone = when (guidance.source) {
+                                        HighRiskResultSource.DEMO_ONLY -> StatusTone.INFO
+                                        HighRiskResultSource.FAILED -> StatusTone.ERROR
+                                        HighRiskResultSource.UNVERIFIED -> StatusTone.WARNING
+                                        HighRiskResultSource.CONFIRMED_EXECUTED -> StatusTone.SUCCESS
+                                    }
+                                )
+                                Text(text = "发生了什么：${guidance.conclusion}")
+                                Text(text = "当前最安全下一步：${guidance.recoveryAction}")
+                                Text(text = "建议动作：${guidance.ctaLabel}")
+                            }
                         }
                         Text(text = if (result.success) "解锁成功" else "解锁失败")
                         uiState.maskedSensitiveFields.forEach { field ->
@@ -314,7 +335,9 @@ fun UnlockVerifyScreen(
                         Text(text = "为什么：${result.message}")
                         Text(text = "校验说明：${result.verificationMessage}")
                         if (result.message.contains("仅演示") || result.verificationMessage.contains("演示模式")) {
-                            StatusPill(text = "仅演示", tone = StatusTone.INFO)
+                            Box(modifier = Modifier.testTag(AppTestTags.UNLOCK_DEMO_ONLY_BADGE)) {
+                                StatusPill(text = "仅演示", tone = StatusTone.INFO)
+                            }
                         }
                     }
                 }
