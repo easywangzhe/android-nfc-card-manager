@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.platform.testTag
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
@@ -41,6 +42,7 @@ import com.opencode.nfccardmanager.ui.component.PrimaryActionButton
 import com.opencode.nfccardmanager.ui.component.SectionTitle
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.toStatusTone
+import com.opencode.nfccardmanager.ui.test.AppTestTags
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -116,7 +118,11 @@ fun FormatCardScreen(
                 Text("格式化或清空成功后，可直接进入写卡流程。")
             }
 
-            AppCard(modifier = Modifier.fillMaxWidth()) {
+            AppCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.FORMAT_STATUS_CARD),
+            ) {
                 SectionTitle("当前状态")
                 Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     KeyValueRow("共享阶段", stagePresentation.title)
@@ -130,20 +136,30 @@ fun FormatCardScreen(
 
             uiState.result?.let { result ->
                 val guidance = uiState.resultGuidance ?: buildFormatNextStepGuidance(result)
-                AppCard(modifier = Modifier.fillMaxWidth()) {
+                AppCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(AppTestTags.FORMAT_RESULT_CARD),
+                ) {
                     SectionTitle(if (result.success) "格式化成功" else "格式化失败")
                     Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         KeyValueRow("UID", result.cardInfo.uid)
                         KeyValueRow("卡类型", result.cardInfo.techType.name)
                         KeyValueRow("状态", result.status)
                         Text("结果：${result.message}")
-                        SectionTitle("发生了什么")
-                        Text(guidance.conclusion)
-                        SectionTitle("为什么")
-                        Text(guidance.reasonSummary)
-                        SectionTitle(guidance.title)
-                        Text(guidance.recommendedAction)
-                        KeyValueRow("建议 CTA", guidance.ctaLabel)
+                        Column(modifier = Modifier.testTag(AppTestTags.FORMAT_WHAT_HAPPENED_SECTION)) {
+                            SectionTitle("发生了什么")
+                            Text(guidance.conclusion)
+                        }
+                        Column(modifier = Modifier.testTag(AppTestTags.FORMAT_WHY_SECTION)) {
+                            SectionTitle("为什么")
+                            Text(guidance.reasonSummary)
+                        }
+                        Column(modifier = Modifier.testTag(AppTestTags.FORMAT_NEXT_STEP_SECTION)) {
+                            SectionTitle(guidance.title)
+                            Text(guidance.recommendedAction)
+                            KeyValueRow("建议 CTA", guidance.ctaLabel)
+                        }
                     }
                 }
             }
@@ -179,7 +195,9 @@ fun FormatCardScreen(
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.FORMAT_START_BUTTON),
                 enabled = uiState.stage != FormatStage.SCANNING && activeSession == null,
             )
 
@@ -190,7 +208,9 @@ fun FormatCardScreen(
                     activeSession = null
                     onGoWrite()
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag(AppTestTags.FORMAT_GO_WRITE_BUTTON),
                 enabled = uiState.result?.success == true,
             )
         }

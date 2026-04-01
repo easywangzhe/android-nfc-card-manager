@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -31,6 +32,7 @@ import com.opencode.nfccardmanager.ui.component.SupportPageSummaryCard
 import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
 import com.opencode.nfccardmanager.ui.component.appPagePadding
+import com.opencode.nfccardmanager.ui.test.AppTestTags
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,7 +53,9 @@ fun AuditLogScreen(
         },
     ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier.appPagePadding(paddingValues),
+            modifier = Modifier
+                .appPagePadding(paddingValues)
+                .testTag(AppTestTags.AUDIT_LIST_ROOT),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
@@ -81,7 +85,9 @@ fun AuditLogScreen(
                 OutlinedTextField(
                     value = uiState.keyword,
                     onValueChange = viewModel::onKeywordChange,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(AppTestTags.AUDIT_FILTER_KEYWORD),
                     label = { Text("关键词筛选") },
                     placeholder = { Text("操作类型 / UID / 卡类型 / 说明") },
                     singleLine = true,
@@ -130,14 +136,21 @@ fun AuditLogScreen(
             }
 
             item {
-                TextButton(onClick = viewModel::resetFilters) {
+                TextButton(
+                    onClick = viewModel::resetFilters,
+                    modifier = Modifier.testTag(AppTestTags.AUDIT_RESET_FILTERS_BUTTON),
+                ) {
                     Text("重置筛选")
                 }
             }
 
             if (uiState.filteredLogs.isEmpty() && !uiState.isLoading) {
                 item {
-                    AppCard(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(AppTestTags.AUDIT_EMPTY_STATE),
+                    ) {
                             Text(text = "暂无匹配日志")
                             Text(text = "可尝试修改筛选条件，或先执行读卡、写卡、锁卡操作。")
                     }
@@ -147,6 +160,7 @@ fun AuditLogScreen(
                     AppCard(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .testTag(AppTestTags.auditListItem(log.id))
                             .clickable { onLogClick(log.id) }
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {

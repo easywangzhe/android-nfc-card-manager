@@ -112,7 +112,11 @@ fun AppCard(
 }
 
 @Composable
-fun StatusPill(text: String, tone: StatusTone) {
+fun StatusPill(
+    text: String,
+    tone: StatusTone,
+    modifier: Modifier = Modifier,
+) {
     val (bg, fg) = when (tone) {
         StatusTone.SUCCESS -> GreenSuccessBg to GreenSuccess
         StatusTone.WARNING -> YellowWarningBg to YellowWarning
@@ -123,7 +127,7 @@ fun StatusPill(text: String, tone: StatusTone) {
         text = text,
         color = fg,
         style = MaterialTheme.typography.bodyMedium,
-        modifier = Modifier
+        modifier = modifier
             .background(bg, RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp),
     )

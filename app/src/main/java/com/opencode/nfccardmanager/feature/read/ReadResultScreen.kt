@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.opencode.nfccardmanager.core.nfc.model.NfcFlowStage
@@ -33,6 +34,7 @@ import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
 import com.opencode.nfccardmanager.ui.component.appPagePadding
 import com.opencode.nfccardmanager.ui.component.toStatusTone
+import com.opencode.nfccardmanager.ui.test.AppTestTags
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +63,11 @@ fun ReadResultScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                AppCard(modifier = Modifier.fillMaxWidth()) {
+                AppCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(AppTestTags.READ_RESULT_CARD),
+                ) {
                     Text(text = "读卡结果", style = MaterialTheme.typography.headlineSmall)
                     Text(
                         text = readGuidance?.conclusion ?: "等待展示完整读卡结果。",
@@ -90,6 +96,7 @@ fun ReadResultScreen(
                         StatusPill(
                             text = readAuthenticity.label,
                             tone = readAuthenticity.tone.toStatusTone(),
+                            modifier = Modifier.testTag(AppTestTags.READ_AUTHENTICITY_BADGE),
                         )
                     }
                 }
@@ -112,7 +119,11 @@ fun ReadResultScreen(
             }
 
             item {
-                AppCard(modifier = Modifier.fillMaxWidth()) {
+                AppCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(AppTestTags.READ_RECOMMENDATION_CARD),
+                ) {
                     Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(text = readGuidance?.recommendedAction ?: "请先确认读卡结果后再继续操作。")
                         readGuidance?.let {
@@ -128,12 +139,16 @@ fun ReadResultScreen(
                     PrimaryActionButton(
                         text = if (readGuidance?.ctaLabel == "先去格式化") "先去格式化" else "格式化卡",
                         onClick = onFormatCard,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(AppTestTags.READ_PRIMARY_CTA),
                     )
                     SecondaryActionButton(
                         text = if (readGuidance?.ctaLabel == "重新读卡") "重新读卡" else "返回重新读卡",
                         onClick = onBack,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag(AppTestTags.READ_SECONDARY_CTA),
                     )
                 }
             }

@@ -1,6 +1,7 @@
 package com.opencode.nfccardmanager.feature.write
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -51,6 +53,7 @@ import com.opencode.nfccardmanager.ui.component.StatusPill
 import com.opencode.nfccardmanager.ui.component.StatusTone
 import com.opencode.nfccardmanager.ui.component.appPagePadding
 import com.opencode.nfccardmanager.ui.component.toStatusTone
+import com.opencode.nfccardmanager.ui.test.AppTestTags
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -121,7 +124,11 @@ fun WriteEditorScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                AppCard(modifier = Modifier.fillMaxWidth()) {
+                AppCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(AppTestTags.WRITE_STAGE_CARD),
+                ) {
                     Text(text = "NDEF 写卡", style = MaterialTheme.typography.headlineSmall)
                     Text(text = uiState.message, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp))
                     Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -348,7 +355,9 @@ fun WriteEditorScreen(
                                 }
                             }
                         },
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(AppTestTags.WRITE_START_BUTTON),
                         enabled = uiState.content.isNotBlank() && uiState.stage != WriteStage.WRITING && activeSession == null,
                     )
 
@@ -360,7 +369,9 @@ fun WriteEditorScreen(
                                 activeSession = null
                                 viewModel.resetResult()
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(AppTestTags.WRITE_RETRY_BUTTON),
                             enabled = uiState.content.isNotBlank() && uiState.stage != WriteStage.WRITING && activeSession == null,
                         )
                     }
@@ -393,7 +404,9 @@ fun WriteEditorScreen(
                             )
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(AppTestTags.WRITE_SIMULATE_SUCCESS_BUTTON),
                 )
             }
 
@@ -414,21 +427,25 @@ fun WriteEditorScreen(
                             Text(text = "写入内容：${result.payloadPreview}")
 
                             guidance?.let {
-                                SectionTitle("写入执行结果")
-                                StatusPill(
-                                    text = it.executionTitle,
-                                    tone = if (it.executionTitle.contains("成功")) StatusTone.SUCCESS else StatusTone.ERROR,
-                                )
-                                Text(text = it.executionConclusion)
-                                Text(text = "执行说明：${result.writeReason}")
+                                Column(modifier = Modifier.testTag(AppTestTags.WRITE_EXECUTION_SECTION)) {
+                                    SectionTitle("写入执行结果")
+                                    StatusPill(
+                                        text = it.executionTitle,
+                                        tone = if (it.executionTitle.contains("成功")) StatusTone.SUCCESS else StatusTone.ERROR,
+                                    )
+                                    Text(text = it.executionConclusion)
+                                    Text(text = "执行说明：${result.writeReason}")
+                                }
 
-                                SectionTitle("回读校验结果")
-                                StatusPill(
-                                    text = it.verificationTitle,
-                                    tone = if (it.verificationTitle.contains("通过")) StatusTone.SUCCESS else StatusTone.WARNING,
-                                )
-                                Text(text = it.verificationConclusion)
-                                Text(text = "校验细节：${result.verificationMessage}")
+                                Column(modifier = Modifier.testTag(AppTestTags.WRITE_VERIFICATION_SECTION)) {
+                                    SectionTitle("回读校验结果")
+                                    StatusPill(
+                                        text = it.verificationTitle,
+                                        tone = if (it.verificationTitle.contains("通过")) StatusTone.SUCCESS else StatusTone.WARNING,
+                                    )
+                                    Text(text = it.verificationConclusion)
+                                    Text(text = "校验细节：${result.verificationMessage}")
+                                }
                             } ?: run {
                                 Text(text = "失败/说明：${result.writeReason}")
                                 KeyValueRow("回读校验", if (result.verified) "通过" else "失败")
@@ -436,15 +453,19 @@ fun WriteEditorScreen(
                             }
 
                             nextStep?.let {
-                                SectionTitle(it.title)
-                                Text(text = it.conclusion)
-                                Text(text = "判断依据：${it.reasonSummary}")
-                                Text(text = "建议动作：${it.recommendedAction}")
-                                KeyValueRow("建议 CTA", it.ctaLabel)
+                                Column(modifier = Modifier.testTag(AppTestTags.WRITE_NEXT_STEP_SECTION)) {
+                                    SectionTitle(it.title)
+                                    Text(text = it.conclusion)
+                                    Text(text = "判断依据：${it.reasonSummary}")
+                                    Text(text = "建议动作：${it.recommendedAction}")
+                                    KeyValueRow("建议 CTA", it.ctaLabel)
+                                }
                             }
 
                             if (result.message.contains("仅演示") || result.verificationMessage.contains("演示模式")) {
-                                StatusPill(text = "仅演示", tone = StatusTone.INFO)
+                                Box(modifier = Modifier.testTag(AppTestTags.WRITE_DEMO_ONLY_BADGE)) {
+                                    StatusPill(text = "仅演示", tone = StatusTone.INFO)
+                                }
                             }
                         }
                     }
