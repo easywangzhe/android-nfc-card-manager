@@ -4,6 +4,8 @@
 
 本轮路线图基于 brownfield 渐进式改造展开：先收口权限、状态语义、能力真实性与单次 NFC 会话边界，再重组首页与导航，随后依次优化高频流程、高风险流程和辅助页面。目标是在不重写既有 NFC 底层能力的前提下，让用户更清楚地理解当前状态、风险提示与下一步动作。
 
+v1.0 里程碑已完成；基于当前 closeout 后暴露出的验证缺口，post-v1 最自然的下一轮主题不是继续扩业务能力，而是补齐验证闭环、真机检查口径与关键路径自动化回归。下面的 Phase 6 作为后续 `/gsd:plan-phase` 的候选入口，不回写 v1.0 已完成的结论。
+
 ## Phases
 
 **Phase Numbering:**
@@ -17,6 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: 高频流程澄清** - 优化读卡、写卡、格式化等高频流程的阶段反馈、结果拆分与下一步指引。 (completed 2026-03-31)
 - [x] **Phase 4: 高风险流程强化** - 强化锁卡与解锁流程的风险提示、确认链路、处理中保护与结果来源表达。 (completed 2026-03-31)
 - [x] **Phase 5: 辅助页统一收尾** - 统一模板、日志、设置等辅助页面的信息层级、审计可读性和安全说明。 (completed 2026-03-31)
+- [x] **Phase 6: 验证闭环与回归基线** - 补齐自动化回归、真机验证矩阵与端到端语义一致性基线。 (completed 2026-04-01)
 
 ## Phase Details
 
@@ -98,10 +101,25 @@ Plans:
 - [x] 05-04-PLAN.md — 统一模板与设置页结构并澄清本地影响边界
 **UI hint**: yes
 
+### Phase 6: 验证闭环与回归基线
+**Goal**: 团队在继续演进现有 NFC 应用前，能用自动化回归与真机验证矩阵同时确认关键权限、真实性、结果来源和审计语义没有漂移。
+**Depends on**: Phase 1-5
+**Requirements**: V2-06, V2-07, V2-08
+**Success Criteria** (what must be TRUE):
+  1. 关键权限路径至少具备一组可重复运行的自动化回归，能验证登录后首页入口可见性、路由守卫和高风险页面真实性标签没有漂移。
+  2. 读卡、写卡、格式化、锁卡、解锁至少形成一份可执行的真机验证矩阵，覆盖成功、失败、未验证与 demo-only 等关键边界。
+  3. 关键流程的 UI 状态、结果来源表达和审计语义存在统一验证口径，后续改动不再只依赖 JVM 纯逻辑测试或文档级 closeout。
+**Plans**: 3 plans
+Plans:
+- [x] 06-01-PLAN.md — 收口验证口径、真机回归矩阵与共享测试契约
+- [x] 06-02-PLAN.md — 落地登录/首页权限与高风险真实性 instrumentation 回归
+- [x] 06-03-PLAN.md — 落地高频结果页与审计一致性 instrumentation 回归
+**UI hint**: yes
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -110,3 +128,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 3. 高频流程澄清 | 3/3 | Complete   | 2026-03-31 |
 | 4. 高风险流程强化 | 3/3 | Complete   | 2026-03-31 |
 | 5. 辅助页统一收尾 | 4/4 | Complete | 2026-03-31 |
+| 6. 验证闭环与回归基线 | 3/3 | Complete | 2026-04-01 |
+
+## Post-v1 Candidate Queue
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 6. 验证闭环与回归基线 | Complete | Verification baseline, real-device matrix, and device regression suites landed (`06-01` ~ `06-03`) |

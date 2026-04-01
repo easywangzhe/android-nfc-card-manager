@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: complete
-stopped_at: Completed 05-04-PLAN.md
-last_updated: "2026-03-31T09:55:53.739Z"
-last_activity: 2026-03-31
+stopped_at: Completed 06-03-PLAN.md
+last_updated: "2026-04-01T06:38:03.789Z"
+last_activity: 2026-04-01
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 15
-  completed_plans: 15
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 18
+  completed_plans: 18
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** 让用户在执行 NFC 卡片关键操作时，始终能清楚理解当前状态、风险提示和下一步动作，从而更安全、更高效地完成任务。
-**Current focus:** Milestone complete
+**Current focus:** Phase 6 completed
 
 ## Current Position
 
-Phase: 5 of 5 (辅助页统一收尾)
-Plan: 4 of 4 in current phase
+Phase: 6 of 6 (验证闭环与回归基线)
+Plan: 3 of 3 in current phase
 Status: Complete
-Last activity: 2026-03-31
+Last activity: 2026-04-01 — Completed Phase 6 verification baseline and device regressions
 
 Progress: [██████████] 100%
 
@@ -36,9 +36,9 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 15
-- Average duration: 7.8 min
-- Total execution time: 1.9 hours
+- Total plans completed: 18
+- Average duration: 10.1 min
+- Total execution time: 3.7 hours
 
 **By Phase:**
 
@@ -49,10 +49,11 @@ Progress: [██████████] 100%
 | 3 | 3 | 34 min | 11.3 min |
 | 4 | 3 | 22 min | 7.3 min |
 | 5 | 4 | 30 min | 7.5 min |
+| 6 | 3 | 102 min | 34 min |
 
 **Recent Trend:**
 
-- Last 5 plans: Phase 4 Plan 3 (8m), Phase 5 Plan 1 (5m), Phase 5 Plan 2 (7m), Phase 5 Plan 3 (10m), Phase 5 Plan 4 (8m)
+- Last 5 plans: Phase 5 Plan 2 (7m), Phase 5 Plan 3 (10m), Phase 5 Plan 4 (8m), Phase 6 Plan 1 (12m), Phase 6 Plan 2 (52m), Phase 6 Plan 3 (38m)
 - Trend: Complete
 
 | Phase 1 P1 | 233 | 2 tasks | 4 files |
@@ -70,6 +71,9 @@ Progress: [██████████] 100%
 | Phase 05 P02 | 7m | 2 tasks | 5 files |
 | Phase 05 P03 | 10m | 2 tasks | 10 files |
 | Phase 05 P04 | 8m | 2 tasks | 4 files |
+| Phase 06 P01 | 12m | 2 tasks | 4 files |
+| Phase 06 P02 | 52m | 2 tasks | 7 files |
+| Phase 06 P03 | 38m | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -104,6 +108,15 @@ Recent decisions affecting current work:
 - [Phase 05]: 解锁成功日志真实性继续标记为 Demo 流程，保持 Phase 4 的真实性边界。
 - [Phase 05]: 模板始终标记为本地复用工具，不允许文案暗示已改变当前卡片。
 - [Phase 05]: 设置页把最近读卡缓存与审计日志清理拆开，分别映射本地便利性与可追责性。
+- [Phase 06]: 先定义验证对象 / 观测信号 / 通过口径，再落地 instrumentation 与真机矩阵，避免先写 UI test 再返工验证口径。
+- [Phase 06]: 权限与真实性自动化优先级高于高频结果语义与审计一致性，先锁住最容易漂移的壳层边界。
+- [Phase 06]: 真机回归矩阵必须显式写出期望 UI 与期望审计字段，不能只停留在 closeout 文档层验证。
+- [Phase 06]: Phase 6 自动化统一通过 AppTestTags 观测结构节点，而不是依赖页面 copy。
+- [Phase 06]: 真机矩阵必须同时写出期望 UI 与期望审计字段，作为后续回归唯一口径。
+- [Phase 06]: Nav redirect 只有在 currentRoute 已存在时才执行，避免冷启动和设备回归时提前访问 graph。
+- [Phase 06]: 高风险页必须支持纵向滚动，确保确认动作与 demo-only 结果在手机视口内可达。
+- [Phase 06]: 格式化失败 guidance 必须在 error-only 场景也能渲染，不允许丢失 what/why/next-step 结构。
+- [Phase 06]: 设备回归对 LazyColumn 内容统一使用根节点 tag + scroll-to-node，不假设目标分区首屏已组合。
 
 ### Pending Todos
 
@@ -115,6 +128,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-31T09:55:53.737Z
-Stopped at: Completed 05-04-PLAN.md
+Last session: 2026-04-01T06:38:03.787Z
+Stopped at: Completed 06-03-PLAN.md
 Resume file: None

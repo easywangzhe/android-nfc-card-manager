@@ -55,6 +55,12 @@ Deferred until the core UX and risk boundaries are stable.
 - **V2-04**: User can use adaptive tablet or landscape layouts where the target device fleet requires it.
 - **V2-05**: User can see enhanced card capability guidance for partially supported or unsupported tags.
 
+### Verification & Regression Confidence
+
+- [x] **V2-06**: Team has automated regression coverage for critical permission visibility, route guarding, and demo/authenticity labeling across key flows.
+- [x] **V2-07**: Team can verify end-to-end consistency between UI state, result source, and audit semantics for the main NFC workflows.
+- [x] **V2-08**: Team can execute a repeatable real-device NFC verification checklist covering success, failure, unverified, and demo-only boundaries.
+
 ## Out of Scope
 
 Explicitly excluded from this roadmap.
@@ -101,6 +107,19 @@ Which phases cover which requirements.
 - Mapped to phases: 21
 - Unmapped: 0 ✓
 
+## v2 Candidate Traceability
+
+| Requirement | Proposed Phase | Status |
+|-------------|----------------|--------|
+| V2-01 | Unplanned | Deferred |
+| V2-02 | Unplanned | Deferred |
+| V2-03 | Unplanned | Deferred |
+| V2-04 | Unplanned | Deferred |
+| V2-05 | Unplanned | Deferred |
+| V2-06 | Phase 6 | Complete |
+| V2-07 | Phase 6 | Complete |
+| V2-08 | Phase 6 | Complete |
+
 ---
 *Requirements defined: 2026-03-31*
-*Last updated: 2026-03-31 after initial definition*
+*Last updated: 2026-04-01 after Phase 6 execution completion*
